@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Trader, box and coins
+// Projekt:       BlogPost 08 - Arduino Esplorer - Trader, box and coins
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
