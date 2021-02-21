@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Bewegter Punkt
+// Projekt:       BlogPost 02 - Arduino Esplorer - Bewegter Punkt
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
