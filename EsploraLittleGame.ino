@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Arduino Esplora - Clean up (Teil 9)
+// Projekt:       BlogPost 09 - Arduino Esplorer -  Clean up (Teil 9)
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // Sensors:       Joystick, Buttons
