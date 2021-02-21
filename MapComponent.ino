@@ -7,17 +7,22 @@
 // - renderAll > wenn alle Kartenabschnitt neu gerendert werden sollen.
 void renderMap(int positionX, int positionY, boolean renderAll) {
 
-  // zum probieren wird zunächste ein Grid gerendert.
+  // zum probieren wird zunächst ein Grid gerendert.
   byte index = 0;
   for(byte y = 0; y < mapTileCountY; y++) {
     for(byte x = 0; x < mapTileCountX; x++) {
 
-      // nur den Bereich neu rendern, 
-      // wo sich die firgur bewegt.
       if(((positionX >= (int)(x * mapTileSize) - (int)mapTileSize && positionX <= (int)(x + 1) * (int)mapTileSize && 
           positionY >= (int)(y * mapTileSize) - (int)mapTileSize && positionY <= (int)(y + 1) * (int)mapTileSize)) || 
           renderAll) {
-        renderMapTile(x, y, pgm_read_byte_near(mapContent + index));
+            byte bTile = pgm_read_byte_near(mapContent + index);
+
+            // TODO: Kartenspezifische abhangigkeit, 
+            //       Eigenschaften andern sich mit Kartenwechsel
+            if(bTile == 2 && mapKeyIsGet) { bTile = 0; }
+            if(bTile == 5 && mapBarrierDoorIsOpen) { bTile = 0; }
+           
+           renderMapTile(x, y, bTile);
       }
       index++;
     }
@@ -33,6 +38,8 @@ void renderMapTile(byte x, byte y, byte mapSegment) {
   byte mapTileColorNumber = 0;
   switch(mapSegment) {
     case(1): { mapTileColorNumber = 10; break; }
+    case(2): { mapTileColorNumber = 12; break; }
+    case(5): { mapTileColorNumber = 13; break; }
     default: { mapTileColorNumber = 15; break; }
   }
 

@@ -2,6 +2,10 @@
 // welchers Sprite Bild beim Rendern verwendet werden soll.
 int animStep = 0;
 
+// Animationssequenz. Ist um ein paar Bytes kleiner, 
+// als wenn man die function in case 1 nochmal in default einträgt.
+byte animSequenz[4] = { 0, 1, 2, 1 };
+
 // Zeichnet die Sprite Figur mit Bewegungsanimation
 // - directionX -> Ausrichtung für Links und rechts
 // - directionY -> Ausrichtung für hoch und runter
@@ -15,42 +19,36 @@ void drawFigure(int directionX, int directionY, int relationX, int relationY) {
   }
 
   if(directionX == 0 && directionY == 1) {
-    switch(animStep){
+    switch(animSequenz[animStep]){
       case(0): { memCopy(spriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
       case(1): { memCopy(spriteFigureFrontMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
       case(2): { memCopy(spriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
-      default: { memCopy(spriteFigureFrontMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      default: {  break; }
     }
   }
   else if(directionX == -1 && directionY == 0) {
-    switch(animStep){
+    switch(animSequenz[animStep]){
       case(0): { memCopy(spriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
       case(1): { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
       case(2): { memCopy(spriteFigureSideRight); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
-      default: { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      default: { break; }
     }
   }
   else if(directionX == 0 && directionY == -1) {
-    switch(animStep){
+    switch(animSequenz[animStep]){
       case(0): { memCopy(spriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
       case(1): { memCopy(spriteFigureBackMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
       case(2): { memCopy(spriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, tempArray, true);  break; }
-      default: { memCopy(spriteFigureBackMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      default: {  break; }
     }
   }
   else if(directionX == 1 && directionY == 0) {
-    switch(animStep){
+    switch(animSequenz[animStep]){
       case(0): { memCopy(spriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
       case(1): { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
       case(2): { memCopy(spriteFigureSideRight); drawTile(relationX, relationY, 10, 16, tempArray, true);  break; }
-      default: { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
+      default: { break; }
     }
   }
 }
 
-// kopiert den Array Inhalt vom Flashspeicher in den SRAM
-void memCopy(byte arrayContent[]) {
-  for(byte index = 0; index < 160; index++) {
-    tempArray[index] = pgm_read_byte_near(arrayContent + index);
-  }
-}

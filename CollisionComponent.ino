@@ -1,8 +1,8 @@
 // Methoden zur Kollisions erkennung zwischen Figur und Berührungspunkten auf der Karte.
 
 // Prüfen, ob in diesem Bereich sich bewegt werden kann.
-// - positionX > zukuenftige position x
-// - positionY > zukuenftige position y
+// - positionX -> zukuenftige position x
+// - positionY -> zukuenftige position y
 boolean CanEnterArea(int positionX, int positionY) {
   boolean resultColide = true;
   
@@ -81,11 +81,52 @@ boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY)
   // hole die content Nummer ab um die kollisionsart zu bestimmen
   byte bTile = pgm_read_byte_near(mapContent + indexStart);
 
-  if(bTile == 1 && resultColide) {
-
-    // DEBUG: Nur fuer debug und visuelle kontrolle
-    EsploraTFT.drawRect(mapOffsetX, mapOffsetY,  mapTileSize, mapTileSize, 0xFA8A);
+  if(bTile == 1) {
+    
     resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+  }
+
+  if(bTile == 2) {
+
+    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+
+    // Abruf des Objektes, 
+    // dass zu der Karte gehoert an der Position.
+    if(!resultColide) {
+      if(setItemToBackpack(1)) {
+        mapKeyIsGet = true;
+      }
+      // nicht blockieren
+      resultColide = true;
+    }
+  }
+  if(bTile == 3 && resultColide) {
+
+    // abruf des Objektes, 
+    // dass zu der Karte gehoert an der Position.
+    // TODO: Abfrage ob objekt aufgenommen werden soll
+    setItemToBackpack(2);
+  }
+  if(bTile == 4 && resultColide) {
+
+    // Abruf des Objektes, 
+    // dass zu der Karte gehoert an der Position.
+    setItemToBackpack(3);
+  }
+
+  // Tuer pruefen und oeffnen
+  if(bTile == 5) {
+
+    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+
+    // Uebergabewert des Verwendungswecks > Tuer oeffnen.
+    // kollision aufheben
+    if(!resultColide) {
+      
+      // ID 1 ist der Schlüssel und entscheidet,
+      // ob die Tuer sich oeffen laest.
+      resultColide = getItemToUsed(1); 
+    }
   }
 
   return resultColide;
@@ -99,15 +140,8 @@ boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY)
 // - mapOffsetY > Kachel Position Y
 boolean checkCollide(byte positionX, byte positionY, byte mapOffsetX, byte mapOffsetY) {
 
-  if(positionX < mapOffsetX + mapTileSize &&
+  return !(positionX < mapOffsetX + mapTileSize &&
        positionX + 10 > mapOffsetX &&
        positionY < mapOffsetY + mapTileSize &&
-       positionY + 16 > mapOffsetY)
-    {
-      // DEBUG: Nur fuer debug und visuelle kontrolle
-      EsploraTFT.drawRect(positionX, positionY,  10, 16, 0xFA8A);
-      return false; 
-    }
-  
-  return true;
+       positionY + 16 > mapOffsetY);
 }
