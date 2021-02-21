@@ -1,11 +1,11 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Animierte Figur
+// Projekt:       Create Map
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   Eine Figur mit animation
+// Description:   Eine Karte erstellen
 // ========================================================================================
 
 #include <SPI.h>
@@ -13,12 +13,11 @@
 #include <Esplora.h>
 
 // ruft die letzte Postion X ab. (Pixel Position)
-int lastPosX = 5;
+int lastPosX = 16;
 // ruft die letzte Postion Y ab. (Pixel Position)
-int lastPosY = 5;
+int lastPosY = 16;
 
-// TODO: Wird ersetz durch die System Zeit
-// die Spielinterval
+// TODO: Wird noch ersetz durch die System Zeit
 long gameTime = 0;
 
 // mittelstellung des Joystick
@@ -27,7 +26,7 @@ int offsetY = 4;
 byte maxDeathbandX = 5;
 byte maxDeathbandY = 5;
 
-// Figur Sprites load from flash
+// Figur Sprites
 byte spriteFigureFrontLeft[160] = {
   0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,4,2,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,1,0,0,1,8,8,3,3,8,8,6,1,1,8,8,8,8,8,8,6,2,1,1,2,1,8,8,8,8,1,1,0,0,1,1,10,10,7,7,1,0,0,0,1,9,10,1,7,6,1,0,0,0,0,1,1,1,7,6,1,0,0,0,0,0,0,1,9,11,1,0,0,0,0,0,0,0,1,1,0,0,0
   };
@@ -63,6 +62,8 @@ void setup() {
   EsploraTFT.initR(INITR_BLACKTAB);
   EsploraTFT.setRotation(1);
   EsploraTFT.background(0, 0, 0);
+
+  renderMap(lastPosX, lastPosY, true);
 }
 
 void loop() {
@@ -91,29 +92,37 @@ void loop() {
   int lastPosXtemp = lastPosX;
   int lastPosYtemp = lastPosY;
 
-  // Abfragen zu den gesetzten joystick
+  // Abfragen zu den gesetzten Joystick
   // Es kann nur in eine Richtung die Bedingung erfüllt werden.
   
   // Wenn nach links oder rechts gedrückt wird.
   if(buttonLeft && !buttonRight && lastPosX > 0) {
     // nach links und letzte Position Y ist groesser als '0'.
-    lastPosX--;
+    if(canEnterArea(lastPosX - 1, lastPosY)) {
+      lastPosX--;
+    }
   }
   else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width() - 16) {
     // nach rechts und letzte Position X ist kleiner als die TFT Pixel Breite.
-    lastPosX++;
+    if(canEnterArea(lastPosX + 10, lastPosY)) {
+      lastPosX++;
+    }
   }
 
   if(buttonUp && !buttonDown && lastPosY > 0) {
     // nach oben und letzte Position Y ist groesser als '0'.
-    lastPosY--;
+    if(canEnterArea(lastPosX, lastPosY - 1)) {
+      lastPosY--;
+    }
   }
   else if(!buttonUp && buttonDown && lastPosY < 110) {
     // nach unten und letzte Position X ist kleiner als die TFT Pixel hoehe.
-    lastPosY++;
+    if(canEnterArea(lastPosX, lastPosY + 16)) {
+      lastPosY++;
+    }
   }
 
-  // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichnen.
+  // Wenn sich X oder Y Position unterscheiden
   if(lastPosX != lastPosXtemp || lastPosY != lastPosYtemp) {
 
     int directX = 0;
@@ -124,6 +133,7 @@ void loop() {
     if(lastPosYtemp > lastPosY) { directY = -1; }
     if(lastPosYtemp < lastPosY) { directY = 1; }
 
+    renderMap(lastPosX, lastPosY, false);
     drawFigure(directX, directY, lastPosX, lastPosY);
   }
 }
