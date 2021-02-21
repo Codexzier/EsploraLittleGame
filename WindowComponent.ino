@@ -1,24 +1,32 @@
-// Legt ein Fenster in den Vordergrund
-bool lastStateShowWindow = false;
-bool windowHasRendered = false;
+// ========================================================================================
+// Description:       Inhalte und Methoden zum Darstellen eines Message Box Fensters.
+// ========================================================================================
 
+// ========================================================================================
+// Functionsvariablen
+
+bool mLastStateShowWindow = false;   // Legt ein Fenster in den Vordergrund
+bool mWindowHasRendered = false;
+
+// ========================================================================================
 // Zeichnet das Fenster mit einem Ensprechenden Text
+// ========================================================================================
 // rightSide = soll das Fenster auf der Rechten Seite angezeigt werden (Standard Maessig wird es in der Mitte angezeigt)
 void drawWindow(bool rightSide) {
 
-  if(lastStateShowWindow != showWindow && !showWindow) {
-    lastStateShowWindow = showWindow;
+  if(mLastStateShowWindow != mShowWindow && !mShowWindow) {
+    mLastStateShowWindow = mShowWindow;
     drawStack(true);
   }
 
-  lastStateShowWindow = showWindow;
+  mLastStateShowWindow = mShowWindow;
   
-  if(!showWindow) {
-    windowHasRendered = false;
+  if(!mShowWindow) {
+    mWindowHasRendered = false;
     return;
   }
 
-  if(windowHasRendered) {
+  if(mWindowHasRendered) {
     return;
   }
   
@@ -35,5 +43,5 @@ void drawWindow(bool rightSide) {
   writeText(winPosX + 5, winPosY + 5, "Hallo!");
   writeText(winPosX + 5, winPosY + 28, "Schliessen [2]");
 
-   windowHasRendered = true;
+   mWindowHasRendered = true;
 }

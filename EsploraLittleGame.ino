@@ -1,304 +1,271 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Trader, box and coins
+// Projekt:       Arduino Esplora - Clean up (Teil 9)
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
-// TFT:           1.8" TFT Module
-// Description:   Einsatz von Händler Boxen und Münzen
+// Sensors:       Joystick, Buttons
+// Actor:         TFT 1.8" 128x160 SPI
+// Description:   Kleines Adventure Spiel entiwckeln
 // ========================================================================================
-
-// Trader, Box and coins
 
 #include <SPI.h>
 #include <TFT.h>
 #include <Esplora.h>
 #include <avr/pgmspace.h>
 
-// ruft die letzte Postion X ab. (Pixel Position)
-int lastPosX = 16;
-// ruft die letzte Postion Y ab. (Pixel Position)
-int lastPosY = 16;
-
-int directionX = 0;
-int directionY = 0;
-
-// sprite byte array
-byte tempArray[160];
+// ========================================================================================
+// Steuerung der Figur
 
 // TODO: Wird ersetz durch die System Zeit
-// die Spielinterval
-long gameTime = 0;
+long mGameTime = 0;                                                    // die Spielinterval
 
-// mittelstellung des Joystick
-int offsetX = -3;
-int offsetY = 4;
-byte maxDeathbandX = 5;
-byte maxDeathbandY = 5;
+int mLastPosX = 16;                                                    // ruft die letzte Postion X ab. (Pixel Position)
+int mLastPosY = 16;                                                    // ruft die letzte Postion Y ab. (Pixel Position)
 
-// blendet das Fenster ein.
-bool showWindow = false;
-// wird verwendet das laufen der Figur gegen eine Menu Navigation zu wechseln.
-bool menueNavigation = false;
-int menueNavigationDelay = 5;
-int menueNavigationDelayCountX = 0;
-int menueNavigationDelayCountY = 0;
-int menueNavigationLastPosX = 0;
-int menueNavigationLastPosY = 0;
-int menueNavigationLastPosXLast = 0;
-int menueNavigationLastPosYLast = 0;
+int mDirectionX = 0;                                                   // Bewegungsrichtung auf der X Achse
+int mDirectionY = 0;                                                   // Bewegungsrichtung auf der Y Achse
 
-// Figur Sprites load from flash
-const PROGMEM byte spriteFigureFrontLeft[160] = {
-  0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,4,2,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,1,0,0,1,8,8,3,3,8,8,6,1,1,8,8,8,8,8,8,6,2,1,1,2,1,8,8,8,8,1,1,0,0,1,1,10,10,7,7,1,0,0,0,1,9,10,1,7,6,1,0,0,0,0,1,1,1,7,6,1,0,0,0,0,0,0,1,9,11,1,0,0,0,0,0,0,0,1,1,0,0,0
-};
+int mOffsetX = -3;                                                     // Kalibrierungs wert für die Mittelstellung des Joystick X
+int mOffsetY = 4;                                                      // Kalibrierungs wert für die Mittelstellung des Joystick Y
+byte mMaxDeathbandX = 5;                                               // plus minus breich, wo der Stick noch nicht reagieren soll auf der X Achse
+byte mMaxDeathbandY = 5;                                               // plus minus breich, wo der Stick noch nicht reagieren soll auf der Y Achse
 
-const PROGMEM byte spriteFigureFrontMiddle[160] = {
-  0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,2,4,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,0,0,0,1,8,8,3,3,8,8,1,0,1,8,6,8,8,8,8,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,7,7,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,10,10,9,1,0,0,0,0,0,1,1,1,1,0,0,0
-};
-  
-const PROGMEM byte spriteFigureSideLeft[160] = {
-  0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,3,8,8,8,1,0,0,0,0,1,8,8,8,6,1,1,0,0,1,2,8,8,8,7,1,1,0,0,1,7,7,1,7,7,1,0,0,0,0,1,1,10,6,6,1,0,0,0,1,10,10,1,6,10,11,1,0,0,1,1,1,1,1,10,9,1,0,0,0,0,0,0,0,1,1,0,0
-};
+// ========================================================================================
+// Fenster und Navigation Steuerung
 
-const PROGMEM byte spriteFigureSideMiddle[160] = {
-  0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,1,3,8,8,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,2,7,1,1,0,0,0,0,0,1,1,10,1,1,0,0,0,0,0,1,10,10,10,1,0,0,0,0,0,1,9,9,1,1,0,0,0,0,0,1,1,1,1,1,0,0
-};
+bool mShowWindow = false;                                              // blendet das Fenster ein.
+bool mMenueNavigation = false;                                         // wird verwendet das laufen der Figur gegen eine Menu Navigation zu wechseln.
 
-const PROGMEM byte spriteFigureSideRight[160] = {
-  0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,1,1,3,8,8,8,1,0,0,1,2,1,8,8,8,6,1,1,0,1,1,1,8,8,1,7,6,1,0,0,0,1,7,1,1,7,2,1,0,0,0,1,1,10,6,1,1,1,0,0,1,11,10,10,1,9,9,1,0,0,1,9,9,9,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0
-  };
+int mMenueNavigationDelay = 5;                                         // navigations verzoegerung
+int mMenueNavigationDelayCountX = 0;                                   // verzoegerungszaehler fuer X Achsen 
+int mMenueNavigationDelayCountY = 0;                                   // verzoegerungszaehler fuer Y Achsen 
+int mMenueNavigationLastPosX = 0;                                      // actuelle Navigationsposition X
+int mMenueNavigationLastPosY = 0;                                      // actuelle Navigationsposition Y
+int mMenueNavigationLastPosXLast = 0;                                  // letzte Navigationsposition X
+int mMenueNavigationLastPosYLast = 0;                                  // letzte Navigationsposition Y
 
-const PROGMEM byte spriteFigureBackLeft[160] = {
-  0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,1,1,1,1,1,1,1,0,0,1,8,8,8,8,8,8,6,1,0,1,2,1,6,8,8,6,8,8,1,0,1,1,8,8,8,8,1,2,1,0,0,1,6,7,7,7,1,1,0,0,0,1,6,6,1,6,6,1,0,0,0,1,7,7,1,1,1,0,0,0,0,1,9,9,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0
-  };
 
-const PROGMEM byte spriteFigureBackMiddle[160] = {
-  0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,0,1,1,1,1,1,1,0,0,0,1,8,8,8,8,8,6,1,0,1,8,6,6,8,8,6,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,6,6,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,9,9,9,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-  };
 
-// ########################################################
-// Karten und weitere Eigenschaften
-// ########################################################
 
-// Kleine Karte
-const PROGMEM byte mapContent[160] =  { 
-  1,1,1,1,1,1,1,1,1,1,
-  1,0,0,0,2,1,0,0,0,1,
-  1,0,0,0,0,1,0,6,0,1,
-  1,0,0,0,0,1,0,0,0,1,
-  1,7,0,0,0,5,0,0,0,1,
-  1,1,1,1,1,1,1,1,1,1,
-};
-// Karten Informationen
-// 1 = Hindernis
-// 2 = Item Schluessel
-// 3 = Item Kamera
-// 4 = Item Foto
-// 5 = Gegenstand Tuer
-// 6 = Haendler 
-// 7 = Kiste
-// Eindeutige Id des verwendungszweck
-const PROGMEM uint16_t mapBarrierUsageDoor01 = 1;
+// ========================================================================================
+// Karten Eigenschaften und Einstellungen
 
+byte mMapTileSize = 16;                                                // Groeße einer Kachel
+byte mMapTileCountX = 10;                                              // Anzahl Kacheln auf der X Achse
+byte mMapTileCountY = 6;                                               // Anzahl Kacheln auf der Y Achse
+
+const PROGMEM byte mMapContent[160] =  {                               // Karten Informationen
+  1,1,1,1,1,1,1,1,1,1,                                                // 1 = Hindernis
+  1,0,0,0,2,1,0,0,0,1,                                                // 2 = Item Schluessel
+  1,0,0,0,0,1,0,6,0,1,                                                // 3 = Item Kamera
+  1,0,0,0,0,1,0,0,0,1,                                                // 4 = Item Foto
+  1,7,0,0,0,5,0,0,0,1,                                                // 5 = Gegenstand Tuer
+  1,1,1,1,1,1,1,1,1,1,                                                // 6 = Haendler
+};                                                                    // 7 = Kiste
+
+const PROGMEM uint16_t mMapBarrierUsageDoor01 = 1;                     // Eindeutige Id des verwendungszweck
+
+// ----------------------------------------------------------------------------------------
 // Kartenspezifischeeinstellung
-bool mapBarrierDoorIsOpen = false;
-bool mapKeyIsGet = false;
 
-byte mapFigurePositionX = -1;
-byte mapFigurePositionY = -1;
-bool mapFigureRerender = false;
+bool mMapBarrierDoorIsOpen = false;                                    // Tuer die geoeffnet werden kann
+bool mMapKeyIsGet = false;                                             // schluessel der aufgehoben werden kann
 
-// ########################################################
-// Allgemeine Karten Informationen
-// ########################################################
-// map size
-// Groeße einer Kachel
-byte mapTileSize = 16;
-// Anzahl Kacheln auf der X Achse
-byte mapTileCountX = 10;
-// Anzahl Kacheln auf der Y Achse
-byte mapTileCountY = 6;
+byte mMapFigurePositionX = -1;                                         // Position X Haendler Figur, wird erst spaeter zugewiesen
+byte mMapFigurePositionY = -1;                                         // Position Y Haendler Figur, wird erst spaeter zugewiesen
+bool mMapFigureRerender = false;                                       // Figur neu zeichnen, wird erst spaeter zugewiesen
 
+// ========================================================================================
+// Methoden
+// ========================================================================================
 
+// ========================================================================================
 void setup() {
 
-  // init display
-  EsploraTFT.begin();
-  EsploraTFT.initR(INITR_BLACKTAB);
-  EsploraTFT.setRotation(1);
-  EsploraTFT.background(0, 0, 0);
+  EsploraTFT.begin();                                                 // init display
+  EsploraTFT.initR(INITR_BLACKTAB);               
+  EsploraTFT.setRotation(1);                                          // festlegen der Bildschirm ausrichtung
+  EsploraTFT.background(0, 0, 0);                                     // Hintergrund komplett schwarz einfaerben
 
-
-  renderMap(lastPosX, lastPosY, true);
-  drawFigure(directionX, directionY, lastPosX, lastPosY);
-  drawEmptyPlaces();
-  drawCoinsStatus(false);
+  renderMap(mLastPosX, mLastPosY, true);                                // render gesammte Karte
+  drawFigure(mDirectionX, mDirectionY, mLastPosX, mLastPosY);             // Figur Zeichnen an der Start Position
+  drawEmptyPlaces();                                                  // Zeichne Leere Taschenplaetze
+  drawCoinsStatus(false);                                             // Zeichne Coin Status
 }
 
+// ========================================================================================
 void loop() {
-  gameTime++;
 
-  // Reset Einstellungen
-  if(!Esplora.readButton(SWITCH_1)) {
-    lastPosX = 16;
-    lastPosY = 16;
+  // TODO: wird noch geaendert
+  mGameTime++;                                                         // aktuelle laufzeit
 
-    mapBarrierDoorIsOpen = false;
-    mapKeyIsGet = false;
-    EsploraTFT.fillRect(0, 6 * 16, mapTileSize * 3, mapTileSize * 2, ST7735_BLACK);
-    renderMap(lastPosX, lastPosY, true);
-  }
-  
-  // Eingänge einlesen
-  int stickX = Esplora.readJoystickX() + (offsetX * -1);
-  int stickY = Esplora.readJoystickY() + (offsetY * -1);
 
-  boolean buttonLeft = false;
-  boolean buttonRight = false;
-  boolean buttonUp = false;
-  boolean buttonDown = false;
+// ----------------------------------------------------------------------------------------
+// Spiel zuruecksetzten, wenn der Button 1 gedrueckt wird.
+  if(!Esplora.readButton(SWITCH_1)) {                                 // Reset Einstellungen
+    mLastPosX = 16;                                                    // Figur an Start Position X zurueck setzten
+    mLastPosY = 16;                                                    // Figur an Start Position Y zurueck setzten
 
-  if(stickX > maxDeathbandX || stickX < (maxDeathbandX * -1)) {
-    buttonLeft = stickX > maxDeathbandX;
-    buttonRight = stickX < (maxDeathbandX * -1);
-  }
-  else if(stickY > maxDeathbandY || stickY < (maxDeathbandY * -1)) {
-    buttonUp = stickY < (maxDeathbandY * -1);
-    buttonDown = stickY > maxDeathbandY;
+// ----------------------------------------------------------------------------------------
+// Kartenspezifischeeinstellung
+
+    mMapBarrierDoorIsOpen = false;                                     // tuer schließen
+    mMapKeyIsGet = false;                                              // schluessel zurueck legen
+
+    EsploraTFT.background(0, 0, 0);                                   // Bildschirm Inhalt zurueck setzten
+    renderMap(mLastPosX, mLastPosY, true);                              // Karte neu zeichnen
+    drawFigure(mDirectionX, mDirectionY, mLastPosX, mLastPosY);           // Figur neu zeichnen
+    drawEmptyPlaces();                                                // Taschenplaetze neu zeichnen
+    drawCoinsStatus(false);                                           // Coin Status zurueck setzten
   }
 
-  // Temporaer letzte Position merken
-  int lastPosXtemp = lastPosX;
-  int lastPosYtemp = lastPosY;
+// ----------------------------------------------------------------------------------------
+// Stick Eingabe aufbereiten
 
-  directionX = 0;
-  directionY = 0;
+  int stickX = Esplora.readJoystickX() + (mOffsetX * -1);              // X Achse des Joystick einlesen
+  int stickY = Esplora.readJoystickY() + (mOffsetY * -1);              // Y Achse des Joystick einlesen
 
-  // Joystick
-  // Es kann nur in eine Richtung die Bedingung erfüllt werden.
-  
-  // Wenn nach links oder rechts gedrückt wird.
-  if(buttonLeft && !buttonRight && lastPosX > 0) {
-    if(menueNavigation) {
-      
+  boolean buttonLeft = false;                                         // nach links laufen
+  boolean buttonRight = false;                                        // nach rechts laufen
+  boolean buttonUp = false;                                           // nach oben
+  boolean buttonDown = false;                                         // nach unten
+
+  if(stickX > mMaxDeathbandX || stickX < (mMaxDeathbandX * -1)) {       // wird der Stick nach links oder rechts bewegt
+    buttonLeft = stickX > mMaxDeathbandX;                              // nach links, wenn der mindest Wert ueberschritten wird.
+    buttonRight = stickX < (mMaxDeathbandX * -1);                      // nach rechts, wenn der mindest Wert ueberschritten wird.
+  }
+  else if(stickY > mMaxDeathbandY || stickY < (mMaxDeathbandY * -1)) {  // wird der Stick nach oben oder unten bewegt.
+    buttonUp = stickY < (mMaxDeathbandY * -1);                         // nach oben, wenn der mindest Wert ueberschritten wird.
+    buttonDown = stickY > mMaxDeathbandY;                              // nach unten, wenn der mindest Wert ueberschritten wird.
+  }
+
+  int lastPosXtemp = mLastPosX;                                        // Temporaer letzte Position zur X Achse merken
+  int lastPosYtemp = mLastPosY;                                        // Temporaer letzte Position zur Y Achse merken
+
+  mDirectionX = 0;                                                     // Ausrichtung X Achse zurueck setzen
+  mDirectionY = 0;                                                     // Ausrichtung Y Achse zurueck setzen
+
+// ----------------------------------------------------------------------------------------
+// Bedingtes Laufen bzw. Menue Navigation
+
+  if(buttonLeft && !buttonRight && mLastPosX > 0) {                    // nach links
+    if(mMenueNavigation) {                                             // Im Menu oder Taschen Plaetzen navigieren
+      // TODO: noch offen
     }
     else {
-      directionX = -1;
-      // nach links und letzte Position Y ist groesser als '0'.
-      if(CanEnterArea(lastPosX, lastPosY)) {
-        lastPosX--;
+      mDirectionX = -1;                                                // Ausrichtung nach links
+      if(CanEnterArea(mLastPosX, mLastPosY)) {                          // kann der Bereich nach links betreten werden
+        mLastPosX--;                                                   // Position um einen Pixel nach Links bewegen
       }
     }
   }
-  else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width() - 16) {
-    if(menueNavigation) {
-      
+  else if(!buttonLeft && buttonRight &&                               // nach rechts 
+          mLastPosX < EsploraTFT.width() - 16) { 
+    
+    if(mMenueNavigation) {                                             // Im Menu oder Taschen Plaetzen navigieren
+      // TODO: noch offen
     }
     else {
-      directionX = 1;
-      // nach rechts und letzte Position X ist kleiner als die TFT Pixel Breite.
-      if(CanEnterArea(lastPosX, lastPosY)) {
-        lastPosX++;
-      }
-    }
-  }
-
-  if(buttonUp && !buttonDown && lastPosY > 0) {
-    if(menueNavigation) {
-      
-    }
-    else {
-      directionY = -1;
-      // nach oben und letzte Position Y ist groesser als '0'.
-      if(CanEnterArea(lastPosX, lastPosY)) {
-        lastPosY--;
-      }
-    }
-  }
-  else if(!buttonUp && buttonDown && lastPosY < 110) {
-    if(menueNavigation) {
-      
-    }
-    else {
-      directionY = 1;
-      // nach unten und letzte Position X ist kleiner als die TFT Pixel hoehe.
-      if(CanEnterArea(lastPosX, lastPosY)) {
-        lastPosY++;
+      mDirectionX = 1;                                                 // Ausrichtung nach rechts
+      if(CanEnterArea(mLastPosX, mLastPosY)) {                          // kann der Bereich nach rechts betreten werden
+        mLastPosX++;                                                   // Position um einen Pixel nach rechts bewegen
       }
     }
   }
 
-  // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichnen.
-  if(!menueNavigation && lastPosX != lastPosXtemp || lastPosY != lastPosYtemp) {
-
-    drawStack(false);
+  if(buttonUp && !buttonDown && mLastPosY > 0) {                       // nach oben
+    if(mMenueNavigation) {                                             // Im Menu oder Taschen Plaetzen navigieren
+      // TODO: noch offen
+    }
+    else {
+      mDirectionY = -1;                                                // Ausrichtung nach oben
+      if(CanEnterArea(mLastPosX, mLastPosY)) {                          // kann der Bereich nach oben betreten werden
+        mLastPosY--;                                                   // Position um einen Pixel nach oben bewegen
+      }
+    }
   }
-  else if(menueNavigation) {
-    menueNavigateWithDelay();
+  else if(!buttonUp && buttonDown && mLastPosY < 110) {                // nach unten
+    if(mMenueNavigation) {                                             // Im Menu oder Taschen Plaetzen navigieren
+      // TODO: noch offen
+    }
+    else {
+      mDirectionY = 1;
+      if(CanEnterArea(mLastPosX, mLastPosY)) {                          // kann der Bereich nach unten betreten werden
+        mLastPosY++;                                                   // Position um einen Pixel nach unten bewegen
+      }
+    }
   }
 
-  drawWindow(lastPosX > EsploraTFT.width() / 2);
-  drawCoinsStatus(false);
+  if(!mMenueNavigation && mLastPosX != lastPosXtemp ||                  // Wenn sich X oder Y Position unterscheiden, 
+      mLastPosY != lastPosYtemp) {                                     // dann den zu bewegenden Punkt neu zeichen.
+
+    drawStack(false);                                                 // zeichenet die Figur und die Haendlering neu
+  }
+  else if(mMenueNavigation) {                                          // wenn in der Menue Navigiert wird
+    menueNavigateWithDelay();                                         // Navigation mit verzogerte Bewegung
+  }
+
+// ----------------------------------------------------------------------------------------
+// Inhalte neu zeichnen
+
+  drawWindow(mLastPosX > EsploraTFT.width() / 2);                      // Zeichnet das Fenster neu, wenn activ
+  drawCoinsStatus(false);                                             // zeichnet den Coin Status neu
 }
 
-// verzögert die Eingaben für die Navigation durch das Menue.
+// ========================================================================================
+// verzoegert die Eingaben für die Navigation durch das Menue.
 void menueNavigateWithDelay() {
 
-  // Button zum schließen
-  if(!Esplora.readButton(SWITCH_2)) {
-
-    // zurueck setzen
-    menueNavigation = false;
-    menueNavigationDelayCountX = 0;
-    menueNavigationDelayCountY = 0;
-    directionY = 1;
-    lastPosY++;
+  if(!Esplora.readButton(SWITCH_2)) {                                 // Fenster schließen mit Button 2
+// ----------------------------------------------------------------------------------------
+// zurueck setzen
+    mMenueNavigation = false;
+    mMenueNavigationDelayCountX = 0;
+    mMenueNavigationDelayCountY = 0;
+    mDirectionY = 1;
+    mLastPosY++;
     drawStack(true);
   }
   
-  if(menueNavigationDelayCountX > menueNavigationDelay || menueNavigationDelayCountY > menueNavigationDelay) {
+  if(mMenueNavigationDelayCountX > mMenueNavigationDelay ||             // Navigationszaehler ueberschritten
+     mMenueNavigationDelayCountY > mMenueNavigationDelay) {
 
-      // Navigationsbereich
-      // delay counter zurueck setzen
-      menueNavigationDelayCountX = 0;
-      menueNavigationDelayCountY = 0;
+      // TODO: wird weiter ausgebaut
+
+      mMenueNavigationDelayCountX = 0;                                 // X Achse delay counter zurueck setzen
+      mMenueNavigationDelayCountY = 0;                                 // Y Achse delay counter zurueck setzen
   }
   else {
-    if(menueNavigationLastPosXLast != menueNavigationLastPosX) {
-      menueNavigationDelayCountY = 0;
-      menueNavigationDelayCountX++;
+    if(mMenueNavigationLastPosXLast != mMenueNavigationLastPosX) {      // x Achse, wenn aktuelle und letzte position sich geaendert hat
+      mMenueNavigationDelayCountY = 0;                                 // y verzogerungszaehler zuruecksetzen
+      mMenueNavigationDelayCountX++;                                   // x verzoegerung um einen hoch zaehlen
     }
-    else if(menueNavigationLastPosYLast != menueNavigationLastPosY) {
-      menueNavigationDelayCountX = 0;
-      menueNavigationDelayCountY++;
+    else if(mMenueNavigationLastPosYLast != mMenueNavigationLastPosY) { // y Achse, wenn aktuelle und letzte position sich geaendert hat
+      mMenueNavigationDelayCountX = 0;                                 // x verzogerungszaehler zuruecksetzen
+      mMenueNavigationDelayCountY++;                                   // y verzoegerung um einen hoch zaehlen
     }
 
-    menueNavigationLastPosXLast = menueNavigationLastPosX;
-    menueNavigationLastPosYLast = menueNavigationLastPosY;
+    mMenueNavigationLastPosXLast = mMenueNavigationLastPosX;            // X Achse aktuelle Position an letzte zuweisen
+    mMenueNavigationLastPosYLast = mMenueNavigationLastPosY;            // Y Achse aktuelle Position an letzte zuweisen
   }
 }
 
+// ========================================================================================
 // Zeichnet den zu rendernden Inhalt in der Vorgesehenen Reihenfolge.
+// ----------------------------------------------------------------------------------------
 // renderMapAll = Rendert den gesammten Karten Inhalt neu.
 void drawStack(bool renderMapAll) {
-  renderMap(lastPosX, lastPosY, renderMapAll);
+  renderMap(mLastPosX, mLastPosY, renderMapAll);                        // Karte neu Zeichnen
 
-    if(lastPosY > mapFigurePositionY) {
-      // 1 = id Nummer von Haendler
-      drawTrader(1, mapFigurePositionX, mapFigurePositionY); // Haendlerin
-      drawFigure(directionX, directionY, lastPosX, lastPosY);
+    if(mLastPosY > mMapFigurePositionY) {                               // Y Achse, wenn die Figur in den Aktionsradius 
+                                                                      // hoeher liegt als die Haendlerin
+      
+      drawTrader(1, mMapFigurePositionX, mMapFigurePositionY);          // 1 = id Nummer von Haendlerin
+      drawFigure(mDirectionX, mDirectionY, mLastPosX, mLastPosY);         // Figur neu zeichnen
     }
     else {
-      drawFigure(directionX, directionY, lastPosX, lastPosY);
-      drawTrader(1, mapFigurePositionX, mapFigurePositionY); // Haendlerin
+      drawFigure(mDirectionX, mDirectionY, mLastPosX, mLastPosY);         // Figur neu zeichnen
+      drawTrader(1, mMapFigurePositionX, mMapFigurePositionY);          // 1 = id Nummer von Haendlerin
     }
-}
-
-// kopiert den Array Inhalt vom Flashspeicher in den SRAM
-// wird für die Figur verwendet.
-void memCopy(byte arrayContent[]) {
-  for(byte index = 0; index < 160; index++) {
-    tempArray[index] = pgm_read_byte_near(arrayContent + index);
-  }
 }
