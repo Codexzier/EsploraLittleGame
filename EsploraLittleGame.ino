@@ -1,11 +1,11 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Use flash memory
+// Projekt:       BlogPost 07 - Arduino Esplorer - Backpack
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   verwendung des Flash Speichers
+// Description:   Ich packe in meinen Rucksack
 // ========================================================================================
 
 #include <SPI.h>
