@@ -3,77 +3,60 @@
 // ========================================================================================
 // Projekt:       Bewegter Punkt
 // Author:        Johannes P. Langner
-// Controller:    Arduino
-// Sensor:        4 Buttons
+// Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   Grundlage codestyle zu meinen Blog
+// Description:   Bewegter Punkt auf dem Esplora
 // ========================================================================================
 
 #include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_ST7735.h>
-
-// Verkabelung / Pins
-// SCLK     => D13
-// MOSI/DIN => D11
-// CS       => D10
-// DC       => D9
-// RST      => D8
-
-// instanz anlegen zu dem verwendeten Bildschirm.
-Adafruit_ST7735 tft = Adafruit_ST7735(10, 9, 8); 
-
-// Pins festlegen
-// ruft die Pin Nummer ab, um die helligkeit des Displays anzusteuern.
-const int pinBrightness = 5;
-// ruft die Pin Nummer ab, um den status des linken Buttons abzufragen
-const int pinButtonLeft = 6;
-// ruft die Pin Nummer ab, um den status des rechten Buttons abzufragen
-const int pinButtonRight = 3;
-// ruft die Pin Nummer ab, um den status des oberen Buttons abzufragen
-const int pinButtonUp = 2;
-// ruft die Pin Nummer ab, um den status des unteren Buttons abzufragen
-const int pinButtonDown = 7;
+#include <TFT.h>
+#include <Esplora.h>
 
 // ruft die letzte Postion X ab. (Pixel Position)
 int lastPosX = 5;
 // ruft die letzte Postion Y ab. (Pixel Position)
 int lastPosY = 5;
 
+// mittelstellung des Joystick
+int offsetX = -3;
+int offsetY = 4;
+
 void setup() {
   
-  // initalisiere display
-  tft.initR(INITR_BLACKTAB);
-
-  // pin Eingänge festlegen
-  pinMode(pinButtonLeft, INPUT);
-  pinMode(pinButtonRight, INPUT);
-  pinMode(pinButtonUp, INPUT);
-  pinMode(pinButtonDown, INPUT);
-
-  // pin für tft helligkeit festlegen
-  pinMode(pinBrightness, OUTPUT);
-  // helligkeit auf maximal einstellen
-  analogWrite(pinBrightness, 255);
-
-  // Bildschirm Schwarzausfüllen und um 90 Grad drehen.
-  tft.fillScreen(ST7735_BLACK);
-  tft.setRotation(1);
+ EsploraTFT.begin();
+ EsploraTFT.background(0, 0, 0);
 }
 
 void loop() {
 
   // Eingänge einlesen
-  boolean buttonLeft = digitalRead(pinButtonLeft);
-  boolean buttonRight = digitalRead(pinButtonRight);
-  boolean buttonUp = digitalRead(pinButtonUp);
-  boolean buttonDown = digitalRead(pinButtonDown);
+  int stickX = Esplora.readJoystickX() + (offsetX * -1);
+  int stickY = Esplora.readJoystickY() + (offsetY * -1);
+
+  boolean buttonLeft = false;
+  boolean buttonRight = false;
+  boolean buttonUp = false;
+  boolean buttonDown = false;
+
+  if(stickX > 3 || stickX < -3) {
+    buttonLeft = stickX > 3;
+    buttonRight = stickX < -3;
+  }
+
+  if(stickY > 3 || stickY < -3) {
+    buttonUp = stickY < -3;
+    buttonDown = stickY > 3;
+  }
+
+  // Werte ausgeben auf dem Bildschirm
+  writeValue(10, 10, stickX, false);
+  writeValue(10, 20, stickY, false);
 
   // Temporaer letzte Position merken
   int lastPosXtemp = lastPosX;
   int lastPosYtemp = lastPosY;
 
-  // Abfragen zu den gedrückten Buttons
+  // Abfragen zu den gesetzten joystick
   // Es kann nur in eine Richtung die Bedingung erfüllt werden.
   
   // Wenn nach links oder rechts gedrückt wird.
@@ -81,7 +64,7 @@ void loop() {
     // nach links und letzte Position Y ist groesser als '0'.
     lastPosX--;
   }
-  else if(!buttonLeft && buttonRight && lastPosX < tft.width()) {
+  else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width()) {
     // nach rechts und letzte Position X ist kleiner als die TFT Pixel Breite.
     lastPosX++;
   }
@@ -91,28 +74,46 @@ void loop() {
     // nach oben und letzte Position Y ist groesser als '0'.
     lastPosY--;
   }
-  else if(!buttonUp && buttonDown && lastPosY < tft.height()) {
+  else if(!buttonUp && buttonDown && lastPosY < EsploraTFT.height()) {
     // nach unten und letzte Position X ist kleiner als die TFT Pixel hoehe.
     lastPosY++;
   }
 
-  // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichen.
+  // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichnen.
   if(lastPosX != lastPosXtemp || lastPosY != lastPosYtemp) {
-    // vorrigen punkt entfernen mit den temporaeren positionen.
+    // vorigen punkt entfernen mit den temporären Positionen
     drawPoint(lastPosXtemp, lastPosYtemp, false);
     // neuen punkt zeichnen mit der neuen Position.
     drawPoint(lastPosX, lastPosY, true);
   }
+
+  writeValue(10, 10, stickX, true);
+  writeValue(10, 20, stickY, true);
+}
+
+void writeValue(int x, int y, int val, boolean clr) {
+  if(clr) {
+    EsploraTFT.stroke(0, 0, 0);
+  }
+  else {
+    EsploraTFT.stroke(30, 200, 50);
+  }
+  String accResult = String(val);
+  char valuePrint[5];
+  accResult.toCharArray(valuePrint, 5);
+  EsploraTFT.text(valuePrint, x, y);
 }
 
 // Einachen Punkt Zeichnen, der nicht ausgefuellt ist.
 void drawPoint(int x, int y, boolean setColor) {
-  
-  int setupColor = ST7735_BLACK;
-  // farbe festlegen
+
+  // Schwarz Zeichnen.
+  EsploraTFT.stroke(0, 0, 0);
+
+  // Farbe festlegen
   if(setColor) {
-    setupColor = ST7735_CYAN;
+    EsploraTFT.stroke(120, 100, 200);
   }
-  tft.drawCircle(x, y, 2, setupColor);
-  delay(2);
+  
+  EsploraTFT.circle(x, y, 2);
 }
