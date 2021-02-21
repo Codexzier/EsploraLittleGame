@@ -1,12 +1,11 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Example Codestyle
+// Projekt:       Bewegter Punkt
 // Author:        Johannes P. Langner
 // Controller:    Arduino
-// Receiver:      UART / WLAN / Bluetooth
-// Sensor:        Name of used sensors
-// Actor:         Name of controlled moduls
+// Sensor:        4 Buttons
+// TFT:           1.8" TFT Module
 // Description:   Grundlage codestyle zu meinen Blog
 // ========================================================================================
 
