@@ -1,23 +1,27 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Create Map
+// Projekt:       Use flash memory
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   Eine Karte erstellen
+// Description:   verwendung des Flash Speichers
 // ========================================================================================
-
 #include <SPI.h>
 #include <TFT.h>
 #include <Esplora.h>
+#include <avr/pgmspace.h>
 
 // ruft die letzte Postion X ab. (Pixel Position)
 int lastPosX = 16;
 // ruft die letzte Postion Y ab. (Pixel Position)
 int lastPosY = 16;
 
-// TODO: Wird noch ersetz durch die System Zeit
+// sprite byte array
+byte tempArray[160];
+
+// TODO: Wird ersetz durch die System Zeit
+// die Spielinterval
 long gameTime = 0;
 
 // mittelstellung des Joystick
@@ -26,32 +30,32 @@ int offsetY = 4;
 byte maxDeathbandX = 5;
 byte maxDeathbandY = 5;
 
-// Figur Sprites
-byte spriteFigureFrontLeft[160] = {
+// Figur Sprites load from flash
+const PROGMEM byte spriteFigureFrontLeft[160] = {
   0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,4,2,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,1,0,0,1,8,8,3,3,8,8,6,1,1,8,8,8,8,8,8,6,2,1,1,2,1,8,8,8,8,1,1,0,0,1,1,10,10,7,7,1,0,0,0,1,9,10,1,7,6,1,0,0,0,0,1,1,1,7,6,1,0,0,0,0,0,0,1,9,11,1,0,0,0,0,0,0,0,1,1,0,0,0
   };
 
-byte spriteFigureFrontMiddle[160] = {
+const PROGMEM byte spriteFigureFrontMiddle[160] = {
     0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,2,4,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,0,0,0,1,8,8,3,3,8,8,1,0,1,8,6,8,8,8,8,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,7,7,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,10,10,9,1,0,0,0,0,0,1,1,1,1,0,0,0
   };
   
-byte spriteFigureSideLeft[160] = {
+const PROGMEM byte spriteFigureSideLeft[160] = {
   0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,3,8,8,8,1,0,0,0,0,1,8,8,8,6,1,1,0,0,1,2,8,8,8,7,1,1,0,0,1,7,7,1,7,7,1,0,0,0,0,1,1,10,6,6,1,0,0,0,1,10,10,1,6,10,11,1,0,0,1,1,1,1,1,10,9,1,0,0,0,0,0,0,0,1,1,0,0
   };
 
-byte spriteFigureSideMiddle[160] = {
+const PROGMEM byte spriteFigureSideMiddle[160] = {
     0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,1,3,8,8,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,2,7,1,1,0,0,0,0,0,1,1,10,1,1,0,0,0,0,0,1,10,10,10,1,0,0,0,0,0,1,9,9,1,1,0,0,0,0,0,1,1,1,1,1,0,0
   };
 
-byte spriteFigureSideRight[160] = {
+const PROGMEM byte spriteFigureSideRight[160] = {
     0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,1,1,3,8,8,8,1,0,0,1,2,1,8,8,8,6,1,1,0,1,1,1,8,8,1,7,6,1,0,0,0,1,7,1,1,7,2,1,0,0,0,1,1,10,6,1,1,1,0,0,1,11,10,10,1,9,9,1,0,0,1,9,9,9,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0
   };
 
-byte spriteFigureBackLeft[160] = {
+const PROGMEM byte spriteFigureBackLeft[160] = {
     0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,1,1,1,1,1,1,1,0,0,1,8,8,8,8,8,8,6,1,0,1,2,1,6,8,8,6,8,8,1,0,1,1,8,8,8,8,1,2,1,0,0,1,6,7,7,7,1,1,0,0,0,1,6,6,1,6,6,1,0,0,0,1,7,7,1,1,1,0,0,0,0,1,9,9,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0
   };
 
-byte spriteFigureBackMiddle[160] = {
+const PROGMEM byte spriteFigureBackMiddle[160] = {
     0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,0,1,1,1,1,1,1,0,0,0,1,8,8,8,8,8,6,1,0,1,8,6,6,8,8,6,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,6,6,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,9,9,9,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
   };
 
@@ -62,6 +66,7 @@ void setup() {
   EsploraTFT.initR(INITR_BLACKTAB);
   EsploraTFT.setRotation(1);
   EsploraTFT.background(0, 0, 0);
+
 
   renderMap(lastPosX, lastPosY, true);
 }
@@ -92,37 +97,37 @@ void loop() {
   int lastPosXtemp = lastPosX;
   int lastPosYtemp = lastPosY;
 
-  // Abfragen zu den gesetzten Joystick
+  // Abfragen zu den gesetzten joystick
   // Es kann nur in eine Richtung die Bedingung erfüllt werden.
   
   // Wenn nach links oder rechts gedrückt wird.
   if(buttonLeft && !buttonRight && lastPosX > 0) {
     // nach links und letzte Position Y ist groesser als '0'.
-    if(canEnterArea(lastPosX - 1, lastPosY)) {
+    if(CanEnterArea(lastPosX - 1, lastPosY)) {
       lastPosX--;
     }
   }
   else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width() - 16) {
     // nach rechts und letzte Position X ist kleiner als die TFT Pixel Breite.
-    if(canEnterArea(lastPosX + 10, lastPosY)) {
+    if(CanEnterArea(lastPosX + 10, lastPosY)) {
       lastPosX++;
     }
   }
 
   if(buttonUp && !buttonDown && lastPosY > 0) {
     // nach oben und letzte Position Y ist groesser als '0'.
-    if(canEnterArea(lastPosX, lastPosY - 1)) {
+    if(CanEnterArea(lastPosX, lastPosY - 1)) {
       lastPosY--;
     }
   }
   else if(!buttonUp && buttonDown && lastPosY < 110) {
     // nach unten und letzte Position X ist kleiner als die TFT Pixel hoehe.
-    if(canEnterArea(lastPosX, lastPosY + 16)) {
+    if(CanEnterArea(lastPosX, lastPosY + 16)) {
       lastPosY++;
     }
   }
 
-  // Wenn sich X oder Y Position unterscheiden
+  // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichen.
   if(lastPosX != lastPosXtemp || lastPosY != lastPosYtemp) {
 
     int directX = 0;
@@ -138,5 +143,10 @@ void loop() {
   }
 }
 
-
+// kopiert den Array Inhalt vom Flashspeicher in den SRAM
+void memCopy(byte arrayContent[]) {
+  for(byte index = 0; index < 160; index++) {
+    tempArray[index] = pgm_read_byte_near(arrayContent + index);
+  }
+}
 

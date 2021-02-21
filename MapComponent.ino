@@ -1,10 +1,8 @@
 // Rendert den Inhalt der Karte
 // Die Figur kann sich auf diesen festgelegten Karte frei bewegen.
 
-// Karte
-// 0 = begehbare flaeche
-// 1 = Wand
-byte mapContent[160] =  { 
+// Karten größe muss noch geprüft werden.
+const PROGMEM byte mapContent[160] =  { 
   1,1,1,1,1,1,1,1,1,1,
   1,0,1,0,0,0,0,0,0,1,
   1,0,1,0,0,1,0,0,0,1,
@@ -12,7 +10,7 @@ byte mapContent[160] =  {
   1,0,0,0,0,0,0,0,0,1,
   1,1,1,1,1,1,1,1,1,1,
 };
-
+// map size
 // Groeße einer Kachel
 byte mapTileSize = 16;
 // Anzahl Kacheln auf der X Achse
@@ -21,11 +19,9 @@ byte mapCountX = 10;
 byte mapCountY = 6;
 
 // liest die Karteninformation ein und Zeichnet die Kacheln.
-// positionX -> Horizontale Render Start Position
-// positionY -> Vertikale Render Start Position
-// renderAll -> sollen alle Kacheln neu geschrieben werden 
-//              oder nur von der angegebenen Position mit den Änderungen.
 void renderMap(int positionX, int positionY, boolean renderAll) {
+
+  // zum probieren wird zunächste ein Grid gerendert.
   byte index = 0;
   for(byte y = 0; y < mapCountY; y++) {
     for(byte x = 0; x < mapCountX; x++) {
@@ -33,7 +29,7 @@ void renderMap(int positionX, int positionY, boolean renderAll) {
       if(((positionX >= (int)(x * mapTileSize) - (int)mapTileSize && positionX <= (int)(x + 1) * (int)mapTileSize && 
           positionY >= (int)(y * mapTileSize) - (int)mapTileSize && positionY <= (int)(y + 1) * (int)mapTileSize)) || 
           renderAll) {
-        renderMapTile(x, y, mapContent[index]);
+        renderMapTile(x, y, pgm_read_byte_near(mapContent + index));
       }
       index++;
     }
@@ -41,9 +37,7 @@ void renderMap(int positionX, int positionY, boolean renderAll) {
 }
 
 // Einfache Kollisionsabfrage
-// positionX -> Horizontale Position
-// positionY -> Vertikale Position
-boolean canEnterArea(byte positionX, byte positionY) {
+boolean CanEnterArea(byte positionX, byte positionY) {
 
   // Kachel Kordinate abrufen
   byte tileX = positionX / 16;
@@ -53,7 +47,7 @@ boolean canEnterArea(byte positionX, byte positionY) {
   byte index = (tileY * mapCountX) + tileX;
 
   // ist das Feld begehbar
-  if(mapContent[index] == 0) {
+  if(pgm_read_byte_near(mapContent + index) == 0) {
     return true;
   }
   
@@ -61,13 +55,9 @@ boolean canEnterArea(byte positionX, byte positionY) {
 }
 
 // rendert die Kacheln Einfarbig.
-// x = Horizontale Kachel Koordinate
-// y = Vertikale Kachel Koordinate
 void renderMapTile(byte x, byte y, byte mapSegment) {
   
   byte mapTileColorNumber = 0;
-  
-  // mapping farbe zuweisen
   switch(mapSegment) {
     case(1): { mapTileColorNumber = 10; break; }
     default: { mapTileColorNumber = 15; break; }

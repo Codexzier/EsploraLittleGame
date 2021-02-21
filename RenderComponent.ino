@@ -1,6 +1,6 @@
 // Die Inhalte werden in Form von Kacheln gerendert.
 
-// Zeichnet den Inhalt eines Byte arrays
+// Zeichnet den INhalt eines Byte arrays
 // - relationX  > Anfangsposition X
 // - relationY  > Anfangsposition Y
 // - tileWidth  > Pixel Breite
@@ -27,7 +27,7 @@ void drawTile(int relationX, int relationY, byte tileWidth, byte tileHeight, byt
   }
 }
 
-// gibt den Farbwert zurück, 
+// gibt den Farbweter zurück, 
 // der hinter der Farbnummer abgelegt wurde.
 uint16_t mapNumberToColor(byte c) {
   uint16_t result = ST7735_RED;

@@ -13,36 +13,37 @@ void drawFigure(int directionX, int directionY, int relationX, int relationY) {
     else {animStep++;}
   }
 
+
   if(directionX == 0 && directionY == 1) {
     switch(animStep){
-      case(0): { drawTile(relationX, relationY, 10, 16, spriteFigureFrontLeft, false); break; }
-      case(1): { drawTile(relationX, relationY, 10, 16, spriteFigureFrontMiddle, false); break; }
-      case(2): { drawTile(relationX, relationY, 10, 16, spriteFigureFrontLeft, true); break; }
-      default: {  drawTile(relationX, relationY, 10, 16, spriteFigureFrontMiddle, false); break; }
+      case(0): { memCopy(spriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      case(1): { memCopy(spriteFigureFrontMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      case(2): { memCopy(spriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
+      default: { memCopy(spriteFigureFrontMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
     }
   }
   else if(directionX == -1 && directionY == 0) {
     switch(animStep){
-      case(0): { drawTile(relationX, relationY, 10, 16, spriteFigureSideLeft, false);  break; }
-      case(1): { drawTile(relationX, relationY, 10, 16, spriteFigureSideMiddle, false); break; }
-      case(2): { drawTile(relationX, relationY, 10, 16, spriteFigureSideRight, false); break; }
-      default: { drawTile(relationX, relationY, 10, 16, spriteFigureSideMiddle, false); break; }
+      case(0): { memCopy(spriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
+      case(1): { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      case(2): { memCopy(spriteFigureSideRight); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
+      default: { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
     }
   }
   else if(directionX == 0 && directionY == -1) {
     switch(animStep){
-      case(0): { drawTile(relationX, relationY, 10, 16, spriteFigureBackLeft, false);  break; }
-      case(1): { drawTile(relationX, relationY, 10, 16, spriteFigureBackMiddle, false);  break; }
-      case(2): { drawTile(relationX, relationY, 10, 16, spriteFigureBackLeft, true);  break; }
-      default: {  drawTile(relationX, relationY, 10, 16, spriteFigureBackMiddle, false);  break; }
+      case(0): { memCopy(spriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
+      case(1): { memCopy(spriteFigureBackMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false);  break; }
+      case(2): { memCopy(spriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, tempArray, true);  break; }
+      default: { memCopy(spriteFigureBackMiddle); drawTile(relationX, relationY, 10, 16, tempArray, false); break; }
     }
   }
   else if(directionX == 1 && directionY == 0) {
     switch(animStep){
-      case(0): { drawTile(relationX, relationY, 10, 16, spriteFigureSideLeft, true); break; }
-      case(1): { drawTile(relationX, relationY, 10, 16, spriteFigureSideMiddle, true); break; }
-      case(2): { drawTile(relationX, relationY, 10, 16, spriteFigureSideRight, true);  break; }
-      default: { drawTile(relationX, relationY, 10, 16, spriteFigureSideMiddle, true); break; }
+      case(0): { memCopy(spriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
+      case(1): { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
+      case(2): { memCopy(spriteFigureSideRight); drawTile(relationX, relationY, 10, 16, tempArray, true);  break; }
+      default: { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
     }
   }
 }
