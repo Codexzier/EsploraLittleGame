@@ -1,11 +1,11 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Use flash memory
+// Projekt:       BlogPost 06 - Arduino Esplorer - Better collision
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   verwendung des Flash Speichers
+// Description:   Collision erkennen und ausbessern
 // ========================================================================================
 
 #include <SPI.h>
