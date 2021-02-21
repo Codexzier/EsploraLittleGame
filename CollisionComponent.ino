@@ -1,4 +1,18 @@
-// Methoden zur Kollisions erkennung zwischen Figur und Berührungspunkten auf der Karte.
+// Beinhaltet die Methoden fur die Kollisionserkennung
+// Wird auch verwendet, um Objekte einsammeln zu koennen.
+// Interaktionen mit einem Haendler/in oder Kiste werden hier ebenfalls getriggert.
+
+// ########################################################
+// #         Variablen fuer Kollisionserkennung           #
+// ########################################################
+// index felder die zu prüfen sind
+// wird in Abhaengigkeit der Richtung verwendet
+int8_t collisionTilesA[3] = { -1, 0, 1 };
+int8_t collisionTilesB[3] = { -1, 0, 1 };
+
+// #######################################
+// #          Methoden                   #
+// #######################################
 
 // Prüfen, ob in diesem Bereich sich bewegt werden kann.
 // - positionX -> zukuenftige position x
@@ -9,30 +23,30 @@ boolean CanEnterArea(int positionX, int positionY) {
   // umliegende Kacheln auf hindernis prüfen
   // wenn hoch oder runter
   if(directionX == 0) {
-    
+
     for(uint8_t i = 0; i < 3; i++) {
       
-      int tileX = (positionX + (collisionTiles[i] * mapTileSize)) / mapTileSize;
+      int tileX = (positionX + (collisionTilesA[i] * mapTileSize)) / mapTileSize;
       int tileY = -1;
 
       int tileYTemp = tileY;
       int positionYShift = 0;
 
       while(tileY == tileYTemp && tileY != 0) {
-        if(directionY == -1) { 
-          tileY = (positionY + directionY + positionYShift) / mapTileSize; 
-          }
+        if(directionY == -1) { tileY = (positionY + directionY + positionYShift) / mapTileSize; }
         else { tileY = (positionY + directionY + 16 + positionYShift) / mapTileSize; }
 
         positionYShift += mapTileSize * directionY;
       }
-      
+
       resultColide = checkCollideNeighbor(positionX, positionY + directionY, tileX, tileY);
 
       if(!resultColide) {
         break;
       }
     }
+
+    resultColide = checkCollideOther(resultColide, positionX, positionY + directionY);
   }
 
   // wenn links oder rechts
@@ -40,7 +54,7 @@ boolean CanEnterArea(int positionX, int positionY) {
 
     for(uint8_t i = 0; i < 3; i++) {
       int tileX = positionX / mapTileSize;
-      int tileY = (positionY + (collisionTiles[i] * mapTileSize)) / mapTileSize;
+      int tileY = (positionY + (collisionTilesA[i] * mapTileSize)) / mapTileSize;
       
       int tileXTemp = tileX;
       int positionXShift = 0;
@@ -58,8 +72,25 @@ boolean CanEnterArea(int positionX, int positionY) {
         break;
       }
     }
+
+    resultColide = checkCollideOther(resultColide, positionX + directionX, positionY);
   }
-  
+
+  return resultColide;
+}
+
+boolean checkCollideOther(boolean resultColide, int positionX, int positionY) {
+  // anderes bewegbares objekt
+  if(resultColide) {
+
+    int overlap = 4;
+    resultColide = checkCollide(positionX, positionY, mapFigurePositionX + (overlap / 2), mapFigurePositionY + (overlap), 10 - overlap, 16 - (overlap * 2));
+
+    // zum testen Fenster oeffnen
+    showWindow = !resultColide;
+    menueNavigation = showWindow;
+  }
+
   return resultColide;
 }
 
@@ -83,14 +114,14 @@ boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY)
 
   if(bTile == 1) {
     
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mapTileSize, mapTileSize);
   }
 
   if(bTile == 2) {
 
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mapTileSize, mapTileSize);
 
-    // Abruf des Objektes, 
+    // abruf des Objektes, 
     // dass zu der Karte gehoert an der Position.
     if(!resultColide) {
       if(setItemToBackpack(1)) {
@@ -109,23 +140,24 @@ boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY)
   }
   if(bTile == 4 && resultColide) {
 
-    // Abruf des Objektes, 
+    // abruf des Objektes, 
     // dass zu der Karte gehoert an der Position.
+    // TODO: Abfrage ob objekt aufgenommen werden soll
     setItemToBackpack(3);
   }
 
   // Tuer pruefen und oeffnen
   if(bTile == 5) {
 
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY);
+    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mapTileSize, mapTileSize);
 
     // Uebergabewert des Verwendungswecks > Tuer oeffnen.
     // kollision aufheben
     if(!resultColide) {
-      
+
       // ID 1 ist der Schlüssel und entscheidet,
       // ob die Tuer sich oeffen laest.
-      resultColide = getItemToUsed(1); 
+      resultColide = getItemToUsed(1);
     }
   }
 
@@ -138,10 +170,10 @@ boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY)
 // - positionY  > zukuenftige position y
 // - mapOffsetX > Kachel Position X
 // - mapOffsetY > Kachel Position Y
-boolean checkCollide(byte positionX, byte positionY, byte mapOffsetX, byte mapOffsetY) {
+boolean checkCollide(byte positionX, byte positionY, byte mapOffsetX, byte mapOffsetY, byte tileSizeX, byte tileSizeY) {
 
-  return !(positionX < mapOffsetX + mapTileSize &&
+return !(positionX < mapOffsetX + tileSizeX &&
        positionX + 10 > mapOffsetX &&
-       positionY < mapOffsetY + mapTileSize &&
+       positionY < mapOffsetY + tileSizeY &&
        positionY + 16 > mapOffsetY);
 }

@@ -8,13 +8,15 @@ byte tempIcon[256];
 // Bild (byte array)
 // Beschreibung (nur bedingt verwenden)
 // Verwendungszweck (sollte nur eine ID sein)
+// Verkaufswert (einige Dinge können gehandelt werden)
+// Kaufwert (Haendler Preis)
 
 // #######################################
 // #          ITEMS                      #
 // #######################################
 // ID 0 
 // '0' bedeutet immer nicht belegt.
-//  #######################################
+// #######################################
 // ID 01
 // Name 
 const PROGMEM char itemKey01[10] = "Schluessel";
@@ -24,6 +26,8 @@ const PROGMEM byte itemKey01Icon[256] =  { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 const PROGMEM char itemKey01Description[] = "Oeffnet eine Box";
 // Verwendungszweck Id => kombinierte funktions abruf fur position und verknuepfte Box mit der selben Id
 const PROGMEM uint16_t itemKey01Usage = 1;
+// Verkaufswert = 0 (Kann nicht verkauft werden)
+// Kaufwert     = 0 (Kann nicht erwaorben werden, Objekte wird gefunden oder vergeben)
 
 // #######################################
 // ID 02 
@@ -59,10 +63,10 @@ void setItemIconToTemp(byte icon[]) {
   }
 }
 
-// Pruefen ob das Item bereits vorhanden ist.
+// pruefen ob das Item bereits vorhanden ist
+// ein Item kann nur einmal vorhanden sein
 bool isItemInBackback(uint16_t itemId) {
 
-  // Ein Item kann nur einmal vorhanden sein
   for(byte index = 0; index < 6; index++) {
     if(backPlaces[index] == itemId) { return true; }
   }
@@ -77,7 +81,7 @@ bool setItemToBackpack(uint16_t itemId) {
   
   // id ablegen in ersten freien Taschenplatz
   byte place = 0;
-  for(byte index = 0; index < sizeof(backPlaces); index++) {
+  for(byte index = 0; index < backpackPlacesCount; index++) {
     if(backPlaces[index] == 0) {
       backPlaces[index] = itemId;
       place = index;
@@ -96,7 +100,7 @@ bool setItemToBackpack(uint16_t itemId) {
     case(1): { setItemIconToTemp(itemKey01Icon);  break; } // Schluessel
     case(2): { setItemIconToTemp(itemCameraIcon); break; } // Fotoapparat
     case(3): { setItemIconToTemp(itemPhoto01Icon); break; } // Foto
-    default: { isArrayCopy = false; break; } // Nicht belegt, darf aber auch nicht eintreten
+    default: { isArrayCopy = false; break; } // Nicht belegt, darf aber auch nciht eintreten
   }
 
   if(isArrayCopy) { drawTile(relationPlaceX, relationPlaceY, mapTileSize, mapTileSize, tempIcon, false); }
@@ -108,7 +112,20 @@ bool setItemToBackpack(uint16_t itemId) {
   return true;
 }
 
-// Holt die anfangs Position des Taschenplatzes das auf dem Bildschirm gerendert werden soll.
+void drawEmptyPlaces() {
+
+  for(int index = 0; index < backpackPlacesCount; index++) {
+    if(backPlaces[index] == 0) {  
+      byte relationPlaceX = 0;
+      byte relationPlaceY = 0;
+      setItemRelationPlace(index, &relationPlaceX, &relationPlaceY);
+      EsploraTFT.fillRect(relationPlaceX, relationPlaceY, mapTileSize, mapTileSize, mapNumberToColor(19));
+      EsploraTFT.drawRect(relationPlaceX, relationPlaceY, mapTileSize, mapTileSize, mapNumberToColor(18));
+    }
+  }
+}
+
+// holt die anfangs Position des Taschenplatzes das auf dem Bildschirm gerendert werden soll.
 void setItemRelationPlace(byte place, byte* relationPlaceX, byte* relationPlaceY) {
 
   // erste Zeile
@@ -124,12 +141,13 @@ void setItemRelationPlace(byte place, byte* relationPlaceX, byte* relationPlaceY
   else if(place == 2 || place == 5) { *relationPlaceX = 32; }
 }
 
-// Prueft die Karten Id mit einem Objekt aus dem Rucksack.
 // mapUsageId = ist die Id nummer, die in der Karte eingesetz wurde.
-//              mit der ID wird der Verwendungszweck abgerufen und mit den Items aus der Tasche abgeglichen.
-//              Die ID ist Kartenspezifisch, daher werden auch die Karten Informationen benotigt.
+//              mit der ID wird der Verwendungszweck abgerufen und mit den Items aus der Tasche abgeglichen
+//              die ID ist Kartenspezifisch, daher werden auch die Karten Informationen benotigt.
 bool getItemToUsed(int16_t mapUsageId) {
 
+  // TODO: Karten Spezifische Eigenschaften.
+  //        Die Werte muessen spaeter in einem temporaren speicher gehalten werden
   int16_t itemId = 0;
 
   // hole itemId aus der Karteneigenschaft ab.
@@ -137,10 +155,10 @@ bool getItemToUsed(int16_t mapUsageId) {
     // Id des zu verwendenden Schlussels
     itemId = 1;
   }
-
-  // pruefe die Tasche, ob das Item vorhanden ist
+  
+  // prüfe die Tasche, ob das Item vorhanden ist
   // und dann aus dem inventar nehmen
-  for(byte index = 0; index < sizeof(backPlaces); index++) {
+  for(byte index = 0; index < backpackPlacesCount; index++) {
 
     // Item einmalig verwenden
     if(itemId != 0 && backPlaces[index] == itemId) {
@@ -154,12 +172,12 @@ bool getItemToUsed(int16_t mapUsageId) {
       }
     }
   }
-
+  
   // TODO: Karten Spezifische Eigenschaften.
   //        Die Werte muessen spaeter in einem temporaren speicher gehalten werden
   if(mapUsageId == mapBarrierUsageDoor01 && mapBarrierDoorIsOpen == true) {
     return true;
   }
 
-   return false;
+  return false;
 }
