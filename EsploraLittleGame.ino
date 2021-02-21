@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Bewegter Punkt
+// Projekt:       Arduino - Bewegter Punkt
 // Author:        Johannes P. Langner
 // Controller:    Arduino
 // Sensor:        4 Buttons
