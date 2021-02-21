@@ -29,6 +29,7 @@ void drawTile(int relationX, int relationY, byte tileWidth, byte tileHeight, byt
 
 // gibt den Farbweter zurück, 
 // der hinter der Farbnummer abgelegt wurde.
+// - c > Farbnummer
 uint16_t mapNumberToColor(byte c) {
   uint16_t result = ST7735_RED;
 

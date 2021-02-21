@@ -2,6 +2,7 @@
 // welchers Sprite Bild beim Rendern verwendet werden soll.
 int animStep = 0;
 
+// Zeichnet die Sprite Figur mit Bewegungsanimation
 // - directionX -> Ausrichtung für Links und rechts
 // - directionY -> Ausrichtung für hoch und runter
 // - relationX  -> Horizontale Start Render Position
@@ -12,7 +13,6 @@ void drawFigure(int directionX, int directionY, int relationX, int relationY) {
     if(animStep > 2) {animStep = 0;}
     else {animStep++;}
   }
-
 
   if(directionX == 0 && directionY == 1) {
     switch(animStep){
@@ -45,5 +45,12 @@ void drawFigure(int directionX, int directionY, int relationX, int relationY) {
       case(2): { memCopy(spriteFigureSideRight); drawTile(relationX, relationY, 10, 16, tempArray, true);  break; }
       default: { memCopy(spriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, tempArray, true); break; }
     }
+  }
+}
+
+// kopiert den Array Inhalt vom Flashspeicher in den SRAM
+void memCopy(byte arrayContent[]) {
+  for(byte index = 0; index < 160; index++) {
+    tempArray[index] = pgm_read_byte_near(arrayContent + index);
   }
 }
