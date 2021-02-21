@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Use flash memory
+// Projekt:       BlogPost 05 - Arduino Esplorer - Use flash memory
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
