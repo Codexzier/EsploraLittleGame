@@ -1,11 +1,11 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Bewegter Punkt
+// Projekt:       Animierte Figur
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // TFT:           1.8" TFT Module
-// Description:   Bewegter Punkt auf dem Esplora
+// Description:   Eine Figur mit animation
 // ========================================================================================
 
 #include <SPI.h>
@@ -17,18 +17,58 @@ int lastPosX = 5;
 // ruft die letzte Postion Y ab. (Pixel Position)
 int lastPosY = 5;
 
+// TODO: Wird ersetz durch die System Zeit
+// die Spielinterval
+long gameTime = 0;
+
 // mittelstellung des Joystick
 int offsetX = -3;
 int offsetY = 4;
+byte maxDeathbandX = 5;
+byte maxDeathbandY = 5;
+
+// Figur Sprites load from flash
+byte spriteFigureFrontLeft[160] = {
+  0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,4,2,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,1,0,0,1,8,8,3,3,8,8,6,1,1,8,8,8,8,8,8,6,2,1,1,2,1,8,8,8,8,1,1,0,0,1,1,10,10,7,7,1,0,0,0,1,9,10,1,7,6,1,0,0,0,0,1,1,1,7,6,1,0,0,0,0,0,0,1,9,11,1,0,0,0,0,0,0,0,1,1,0,0,0
+  };
+
+byte spriteFigureFrontMiddle[160] = {
+    0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,2,4,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,0,0,0,1,8,8,3,3,8,8,1,0,1,8,6,8,8,8,8,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,7,7,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,10,10,9,1,0,0,0,0,0,1,1,1,1,0,0,0
+  };
+  
+byte spriteFigureSideLeft[160] = {
+  0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,3,8,8,8,1,0,0,0,0,1,8,8,8,6,1,1,0,0,1,2,8,8,8,7,1,1,0,0,1,7,7,1,7,7,1,0,0,0,0,1,1,10,6,6,1,0,0,0,1,10,10,1,6,10,11,1,0,0,1,1,1,1,1,10,9,1,0,0,0,0,0,0,0,1,1,0,0
+  };
+
+byte spriteFigureSideMiddle[160] = {
+    0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,0,1,1,3,8,8,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,8,8,6,1,0,0,0,0,0,1,2,7,1,1,0,0,0,0,0,1,1,10,1,1,0,0,0,0,0,1,10,10,10,1,0,0,0,0,0,1,9,9,1,1,0,0,0,0,0,1,1,1,1,1,0,0
+  };
+
+byte spriteFigureSideRight[160] = {
+    0,0,1,1,1,1,1,0,0,0,0,1,3,3,3,3,3,1,0,0,1,3,3,3,3,3,3,5,1,0,1,4,4,3,3,3,3,3,3,1,0,1,5,2,3,3,3,3,3,1,0,1,2,1,2,10,3,3,3,1,0,1,2,1,2,2,10,3,1,0,0,1,2,2,2,2,2,4,1,0,0,1,1,3,8,8,8,1,0,0,1,2,1,8,8,8,6,1,1,0,1,1,1,8,8,1,7,6,1,0,0,0,1,7,1,1,7,2,1,0,0,0,1,1,10,6,1,1,1,0,0,1,11,10,10,1,9,9,1,0,0,1,9,9,9,1,1,1,0,0,0,0,1,1,1,0,0,0,0,0
+  };
+
+byte spriteFigureBackLeft[160] = {
+    0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,1,1,1,1,1,1,1,0,0,1,8,8,8,8,8,8,6,1,0,1,2,1,6,8,8,6,8,8,1,0,1,1,8,8,8,8,1,2,1,0,0,1,6,7,7,7,1,1,0,0,0,1,6,6,1,6,6,1,0,0,0,1,7,7,1,1,1,0,0,0,0,1,9,9,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0
+  };
+
+byte spriteFigureBackMiddle[160] = {
+    0,0,1,1,1,1,1,1,0,0,0,1,3,4,4,3,3,4,1,0,1,4,3,3,3,3,3,3,4,1,1,3,3,3,3,3,3,3,3,1,1,4,3,3,3,3,10,3,4,1,1,5,4,3,3,3,3,3,10,1,0,1,10,10,3,3,3,10,1,0,0,0,1,1,1,1,1,1,0,0,0,1,8,8,8,8,8,6,1,0,1,8,6,6,8,8,6,6,8,1,1,2,1,8,8,8,8,1,2,1,0,1,1,7,6,6,7,1,1,0,0,0,1,6,7,7,6,1,0,0,0,0,1,9,9,9,9,1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+  };
 
 void setup() {
-  
- EsploraTFT.begin();
- EsploraTFT.background(0, 0, 0);
+
+  // init display
+  EsploraTFT.begin();
+  EsploraTFT.initR(INITR_BLACKTAB);
+  EsploraTFT.setRotation(1);
+  EsploraTFT.background(0, 0, 0);
 }
 
 void loop() {
 
+  gameTime++;
+  
   // Eingänge einlesen
   int stickX = Esplora.readJoystickX() + (offsetX * -1);
   int stickY = Esplora.readJoystickY() + (offsetY * -1);
@@ -38,19 +78,14 @@ void loop() {
   boolean buttonUp = false;
   boolean buttonDown = false;
 
-  if(stickX > 3 || stickX < -3) {
-    buttonLeft = stickX > 3;
-    buttonRight = stickX < -3;
+  if(stickX > maxDeathbandX || stickX < (maxDeathbandX * -1)) {
+    buttonLeft = stickX > maxDeathbandX;
+    buttonRight = stickX < (maxDeathbandX * -1);
   }
-
-  if(stickY > 3 || stickY < -3) {
-    buttonUp = stickY < -3;
-    buttonDown = stickY > 3;
+  else if(stickY > maxDeathbandY || stickY < (maxDeathbandY * -1)) {
+    buttonUp = stickY < (maxDeathbandY * -1);
+    buttonDown = stickY > maxDeathbandY;
   }
-
-  // Werte ausgeben auf dem Bildschirm
-  writeValue(10, 10, stickX, false);
-  writeValue(10, 20, stickY, false);
 
   // Temporaer letzte Position merken
   int lastPosXtemp = lastPosX;
@@ -64,56 +99,34 @@ void loop() {
     // nach links und letzte Position Y ist groesser als '0'.
     lastPosX--;
   }
-  else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width()) {
+  else if(!buttonLeft && buttonRight && lastPosX < EsploraTFT.width() - 16) {
     // nach rechts und letzte Position X ist kleiner als die TFT Pixel Breite.
     lastPosX++;
   }
 
-  // wenn nach oben oder unten gedrückt wird.
   if(buttonUp && !buttonDown && lastPosY > 0) {
     // nach oben und letzte Position Y ist groesser als '0'.
     lastPosY--;
   }
-  else if(!buttonUp && buttonDown && lastPosY < EsploraTFT.height()) {
+  else if(!buttonUp && buttonDown && lastPosY < 110) {
     // nach unten und letzte Position X ist kleiner als die TFT Pixel hoehe.
     lastPosY++;
   }
 
   // Wenn sich X oder Y Position unterscheiden, dann den zu bewegenden Punkt neu zeichnen.
   if(lastPosX != lastPosXtemp || lastPosY != lastPosYtemp) {
-    // vorigen punkt entfernen mit den temporären Positionen
-    drawPoint(lastPosXtemp, lastPosYtemp, false);
-    // neuen punkt zeichnen mit der neuen Position.
-    drawPoint(lastPosX, lastPosY, true);
-  }
 
-  writeValue(10, 10, stickX, true);
-  writeValue(10, 20, stickY, true);
+    int directX = 0;
+    int directY = 0;
+
+    if(lastPosXtemp > lastPosX) { directX = -1; }
+    if(lastPosXtemp < lastPosX) { directX = 1; }
+    if(lastPosYtemp > lastPosY) { directY = -1; }
+    if(lastPosYtemp < lastPosY) { directY = 1; }
+
+    drawFigure(directX, directY, lastPosX, lastPosY);
+  }
 }
 
-void writeValue(int x, int y, int val, boolean clr) {
-  if(clr) {
-    EsploraTFT.stroke(0, 0, 0);
-  }
-  else {
-    EsploraTFT.stroke(30, 200, 50);
-  }
-  String accResult = String(val);
-  char valuePrint[5];
-  accResult.toCharArray(valuePrint, 5);
-  EsploraTFT.text(valuePrint, x, y);
-}
 
-// Einachen Punkt Zeichnen, der nicht ausgefuellt ist.
-void drawPoint(int x, int y, boolean setColor) {
 
-  // Schwarz Zeichnen.
-  EsploraTFT.stroke(0, 0, 0);
-
-  // Farbe festlegen
-  if(setColor) {
-    EsploraTFT.stroke(120, 100, 200);
-  }
-  
-  EsploraTFT.circle(x, y, 2);
-}
