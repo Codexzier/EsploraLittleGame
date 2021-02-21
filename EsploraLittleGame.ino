@@ -6,7 +6,7 @@
 // Controller:    Arduino
 // Sensor:        4 Buttons
 // TFT:           1.8" TFT Module
-// Description:   Grundlage codestyle zu meinen Blog
+// Description:   Einen Punkt bewegen
 // ========================================================================================
 
 #include <SPI.h>
