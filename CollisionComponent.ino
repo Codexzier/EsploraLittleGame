@@ -1,15 +1,22 @@
 // ========================================================================================
 // Description:       Beinhaltet die Methoden fur die Kollisionserkennung
 //                    Wird auch verwendet, um Objekte einsammeln zu koennen.
-//                    Interaktionen mit einem Haendler/in oder Kiste werden 
+//                    Interaktionen mit einem Haendler/in oder Kiste werden
 //                    hier ebenfalls getriggert.
+// ----------------------------------------------------------------------------------------
+// Fuss Bereich:      Geprueft wird nur der untere Teil der Figur (die Fuesse).
+//                    Dadurch kann der Kopf vor einer Wand stehen, wie bei
+//                    Spielen mit Draufsicht ueblich.
 // ========================================================================================
 
 // ========================================================================================
 // Variablen fuer Kollisionserkennung
 
-int8_t mCollisionTilesA[3] = { -1, 0, 1 };                   // index felder die zu prüfen sind, wird in Abhaengigkeit der Richtung verwendet
-int8_t mCollisionTilesB[3] = { -1, 0, 1 };                   // index felder die zu prüfen sind, wird in Abhaengigkeit der Richtung verwendet
+#define FEET_OFFSET_X   1                                              // Fuss Bereich relativ zur Figur
+#define FEET_OFFSET_Y   10
+#define FEET_WIDTH      8
+#define FEET_HEIGHT     6
+#define NPC_BLOCK_OFFSET_Y 6                                           // Beginn des Bereiches, den Surie blockiert
 
 // ========================================================================================
 // Methoden
@@ -19,179 +26,99 @@ int8_t mCollisionTilesB[3] = { -1, 0, 1 };                   // index felder die
 // kann die Figur diesen Bereich betreten
 // ----------------------------------------------------------------------------------------
 // positionX, positionY = Nächste Position, in dem sich die Figur bwegen soll.
-boolean CanEnterArea(int positionX, int positionY) {
+// Rueckgabe            = MOVE_FREE, MOVE_BLOCKED_NPC, MOVE_BLOCKED_BORDER
+//                        oder der Index der Kachel, die im Weg ist.
+byte checkMove(int positionX, int positionY) {
 
-  // TODO: Beinhaltet auch die Abfragen zu Haendler/in, Kiste und Kartenwechsel.
-  boolean resultColide = true;
-
-  if(mDirectionX == 0) {                                     // umliegende Kacheln auf hindernis prüfen, wenn hoch oder runter
-
-    for(uint8_t i = 0; i < 3; i++) {
-      
-      int tileX = (positionX + (mCollisionTilesA[i] * mMapTileSize)) / mMapTileSize;
-      int tileY = -1;
-
-      int tileYTemp = tileY;
-      int positionYShift = 0;
-
-      while(tileY == tileYTemp && tileY != 0) {
-        if(mDirectionY == -1) { tileY = (positionY + mDirectionY + positionYShift) / mMapTileSize; }
-        else { tileY = (positionY + mDirectionY + 16 + positionYShift) / mMapTileSize; }
-
-        positionYShift += mMapTileSize * mDirectionY;
-      }
-
-      resultColide = checkCollideNeighbor(positionX, positionY + mDirectionY, tileX, tileY);
-
-      if(!resultColide) {
-        break;
-      }
-    }
-
-    resultColide = checkCollideOther(resultColide, positionX, positionY + mDirectionY);
+  if(positionX < 0 || positionY < 0 ||                                 // Kartenrand
+     positionX > MAP_WIDTH - FIGURE_WIDTH ||
+     positionY > MAP_HEIGHT - FIGURE_HEIGHT) {
+    return MOVE_BLOCKED_BORDER;
   }
 
-  if(mDirectionY == 0) {                                     // wenn links oder rechts
+  int feetLeft = positionX + FEET_OFFSET_X;
+  int feetTop = positionY + FEET_OFFSET_Y;
 
-    for(uint8_t i = 0; i < 3; i++) {
-      int tileX = positionX / mMapTileSize;
-      int tileY = (positionY + (mCollisionTilesA[i] * mMapTileSize)) / mMapTileSize;
-      
-      int tileXTemp = tileX;
-      int positionXShift = 0;
+  byte blocker = MOVE_FREE;
+  for(int tileY = feetTop / MAP_TILE_SIZE;                              // alle Kacheln unter den Fuessen pruefen
+      tileY <= (feetTop + FEET_HEIGHT - 1) / MAP_TILE_SIZE; tileY++) {
+    for(int tileX = feetLeft / MAP_TILE_SIZE;
+        tileX <= (feetLeft + FEET_WIDTH - 1) / MAP_TILE_SIZE; tileX++) {
 
-      while(tileX == tileXTemp) {
-        if(mDirectionX == -1) {  tileX = (positionX + mDirectionX + positionXShift) / mMapTileSize; }
-        else { tileX = (positionX + mDirectionX + 10 + positionXShift) / mMapTileSize; }
-        
-        positionXShift += mMapTileSize * mDirectionX;
-      }
-  
-      resultColide = checkCollideNeighbor(positionX + mDirectionX, positionY, tileX, tileY);
-  
-      if(!resultColide) {
-        break;
+      byte index = tileY * MAP_TILE_COUNT_X + tileX;
+      byte tile = getTile(index);
+
+      if(isTileSolid(tile)) {
+        if(isTileInteractive(tile)) {                                   // Tuer oder Kiste haben Vorrang vor einer Wand
+          return index;
+        }
+        blocker = index;
       }
     }
-
-    resultColide = checkCollideOther(resultColide, positionX + mDirectionX, positionY);
   }
 
-  return resultColide;
+  if(blocker != MOVE_FREE) {
+    return blocker;
+  }
+
+  if(mNpcActive &&                                                      // anderes bewegbares objekt, der Bereich reicht
+     checkCollide(feetLeft, feetTop, FEET_WIDTH, FEET_HEIGHT,          // etwas unter Surie, damit sich die Figuren
+                  mNpcX, mNpcY + NPC_BLOCK_OFFSET_Y,                    // kaum ueberdecken
+                  FIGURE_WIDTH, FIGURE_HEIGHT)) {
+    return MOVE_BLOCKED_NPC;
+  }
+
+  return MOVE_FREE;
 }
 
 // ========================================================================================
-// Pruft ob an der Position die Figuar mit einer 
-// stehenden Figur auf der Karte ueberschneidet
-// ----------------------------------------------------------------------------------------
-// resultColide = besteht eine ueberschneidung, 
-//                dann wird diese mit der pruefung genauer geprueft.
-// positionX    = aktuelle zu prufende Position X
-// positionY    = aktuelle zu prufende Position Y
-boolean checkCollideOther(boolean resultColide, int positionX, int positionY) {
+// Kann die Kachel nicht betreten werden.
+bool isTileSolid(byte tile) {
 
-  if(resultColide) {                                        // anderes bewegbares objekt
-
-    int overlap = 4;
-    resultColide = checkCollide(positionX, positionY, 
-                                mMapFigurePositionX + (overlap / 2), 
-                                mMapFigurePositionY + (overlap), 
-                                10 - overlap, 16 - (overlap * 2));
-    
-    mShowWindow = !resultColide;                             // zum testen Fenster oeffnen
-    mMenueNavigation = mShowWindow;
+  switch(tile) {
+    case(TILE_WALL):
+    case(TILE_DOOR):
+    case(TILE_CHEST):
+    case(TILE_TREE):
+    case(TILE_HOUSE_WALL):
+    case(TILE_ROOF):
+    case(TILE_HEDGE):
+    case(TILE_HOUSE_DOOR): { return true; }
+    default: { return false; }
   }
-
-  return resultColide;
 }
 
 // ========================================================================================
-// Laedt aus dem Flashspeicher die Kachelelemente ab und 
-// prueft die Kollision mit neben anliegende Kacheln.
-// Verhindert speziel den Fehhler zwischen zwei Kacheln, nur eine zu pruefen.
-// ----------------------------------------------------------------------------------------
-// positionX  = zukuenftige position x
-// positionY  = zukuenftige position y
-// tileX      = x Kachel die von der zukuenftigen Position
-// tileY      = y Kachel die von der zukuenftigen Position
-boolean checkCollideNeighbor(int positionX, int positionY, int tileX, int tileY) {
-
-  boolean resultColide = true;
-
-  int mapOffsetX = tileX * mMapTileSize;
-  int mapOffsetY = tileY * mMapTileSize;
-  
-  int indexStart = (tileY * mMapTileCountX) + tileX;  
-  byte bTile = pgm_read_byte_near(mMapContent + indexStart); // hole die content Nummer ab um die kollisionsart zu bestimmen
-
-  if(bTile == 1) {
-    
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mMapTileSize, mMapTileSize);
-  }
-
-// TODO: Werte werden hier noch uebersetzt.
-  if(bTile == 2) {
-
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mMapTileSize, mMapTileSize);
-    
-    if(!resultColide) {                                     // abruf des Objektes, 
-                                                            // dass zu der Karte gehoert an der Position.
-      // TODO: Abfrage ob objekt aufgenommen werden soll
-      if(setItemToBackpack(1)) {
-        mMapKeyIsGet = true;
-      }
-
-      resultColide = true;                                  // nicht blockieren
-    }
-  }
-  if(bTile == 3 && resultColide) {
-
-    // TODO: Abfrage ob objekt aufgenommen werden soll
-    setItemToBackpack(2);                                   // abruf des Objektes, 
-                                                            // dass zu der Karte gehoert an der Position.
-  }
-  
-  if(bTile == 4 && resultColide) {
-
-    // TODO: Abfrage ob objekt aufgenommen werden soll
-    setItemToBackpack(3);                                   // abruf des Objektes, 
-                                                            // dass zu der Karte gehoert an der Position.
-  }
-  
-  if(bTile == 5) {                                          // Tuer pruefen und oeffnen
-
-    resultColide = checkCollide(positionX, positionY, mapOffsetX, mapOffsetY, mMapTileSize, mMapTileSize);
-    
-    if(!resultColide) {                                     // Uebergabewert des Verwendungswecks > Tuer oeffnen.
-                                                            // kollision aufheben
-     
-      resultColide = getItemToUsed(1);                      // ID 1 ist der Schlüssel und entscheidet,
-                                                            // ob die Tuer sich oeffen laest.
-    }
-  }
-
-  return resultColide;
+// Loest die Kachel beim Anstossen eine Aktion aus.
+bool isTileInteractive(byte tile) {
+  return tile == TILE_DOOR || tile == TILE_CHEST || tile == TILE_HOUSE_DOOR;
 }
 
 // ========================================================================================
-// Kachel Position mit zukuenftiger Position der Figur abgeleichen,
-// durch ansetzten von Rechtecken und ob diese sich ueberschneiden.
-// ----------------------------------------------------------------------------------------
-// positionX      = zukuenftige position x
-// positionY      = zukuenftige position y
-// mapOffsetX     = Kachel Position X
-// mapOffsetY     = Kachel Position Y
-// tileSizeWidth  = Kachel Breite
-// tileSizeHeight = Kaachel Hoehe
-boolean checkCollide(byte positionX, byte positionY, byte mapOffsetX, byte mapOffsetY, byte tileSizeWidth, byte tileSizeHeight) {
+// Prueft, ob die Fuesse der Figur eine Kachel betreten haben, die etwas ausloest
+// (Schluessel, Muenze, Ausgang oder Fotopunkt).
+// Als Position zaehlt die Mitte der Fuesse.
+void checkTrigger() {
 
-  if(positionX < mapOffsetX + tileSizeWidth &&
-       positionX + 10 > mapOffsetX &&
-       positionY < mapOffsetY + tileSizeHeight &&
-       positionY + 16 > mapOffsetY)
-  {
-    return false; 
+  int footX = mPosX + FEET_OFFSET_X + FEET_WIDTH / 2;
+  int footY = mPosY + FEET_OFFSET_Y + FEET_HEIGHT / 2;
+  byte index = (footY / MAP_TILE_SIZE) * MAP_TILE_COUNT_X + (footX / MAP_TILE_SIZE);
+
+  if(index == mTriggerLatch) {                                          // nur beim Betreten ausloesen
+    return;
   }
-  
-  return true;
+
+  mTriggerLatch = index;
+  onEnterTile(index, getTile(index));
+}
+
+// ========================================================================================
+// Ueberschneiden sich zwei Rechtecke.
+// ----------------------------------------------------------------------------------------
+// ax, ay, aw, ah = Rechteck A (Position, Breite, Hoehe)
+// bx, by, bw, bh = Rechteck B (Position, Breite, Hoehe)
+bool checkCollide(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh) {
+
+  return ax < bx + bw && ax + aw > bx &&
+         ay < by + bh && ay + ah > by;
 }

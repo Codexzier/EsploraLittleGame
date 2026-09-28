@@ -1,131 +1,165 @@
 // ========================================================================================
 // Description:       Die Inhalte werden in Form von Kacheln gerendert.
-// ========================================================================================
-
-// ========================================================================================
-// Variablen
-
-char mValuePrint[5];                                     // Wird fuer die Zeichenausgabe 
-                                                        // von integer Werten verwendet.
-
-// Aenderbare Farben
-int16_t mSpriteHairColor1 = 0xD615;
-int16_t mSpriteHairColor2 = 0xBD30;
-int16_t mSpriteShirtColor1 = 0xD69A;
-int16_t mSpriteShirtColor2 = 0xB596;
-int16_t mSpritePantsColor1 = 0x0418;
-int16_t mSpritePantsColor2 = 0x0312;
-
-int16_t mBoxColor = 0xDCFE;
-
-// ========================================================================================
-// Zeichnet den INhalt eines Byte arrays
 // ----------------------------------------------------------------------------------------
-// relationX  = Anfangsposition X
-// relationY  = Anfangsposition Y
-// tileWidth  = Pixel Breite
-// tileHeight = Pixel Hoehe
-// tilePic[]  = Byte Array mit dem Inhalt der zu rendernden Pixeln.
-// mirror     = Spiegelt das Bild Horizontal
-void drawTile(int relationX, int relationY, byte tileWidth, byte tileHeight, byte tilePic[], boolean mirror) {
-  
-  int index = 0;
-  for(int y = 0; y < tileHeight; y++) {
-    for(int x = 0; x < tileWidth; x++) {
-
-        int indexTarget = index;
-        if(mirror) {
-          indexTarget = index - x + (tileWidth - x) - 1;
-        }
-
-        byte colorNumber = tilePic[indexTarget];
-        
-        // Nur Farbe
-        if(colorNumber != 0) {
-          EsploraTFT.drawPixel(relationX+x, relationY+y, mapNumberToColor(colorNumber));
-        }
-        index++;
-    }
-  }
-}
+// Vorgehen:          Ein Bereich wird Pixel fuer Pixel zusammengesetzt
+//                    (Karte -> Surie -> Figur, nach Tiefe sortiert) und mit
+//                    setAddrWindow + pushColor in einem Rutsch an das Display gesendet.
+//                    - kein Flackern, da jeder Pixel nur einmal geschrieben wird
+//                    - deutlich schneller als drawPixel, da das Adressfenster nur
+//                      einmal je Bereich gesetzt wird
+//                    - kein Zwischenspeicher im SRAM noetig, alles kommt aus dem Flash
+// ========================================================================================
 
 // ========================================================================================
-// gibt den Farbweter zurück, 
+// Farben (RGB565), Index = Farbnummer in den Sprites und Kacheln
+
+const PROGMEM uint16_t mPalette[] = {
+  0x0000,                                                              // 0  durchsichtig
+  0x0000,                                                              // 1  schwarz
+  0xF590,                                                              // 2  haut
+  0x81E1,                                                              // 3  braun
+  0xC2C2,                                                              // 4  hell braun
+  0x8300,                                                              // 5  braun gelb
+  0x5406,                                                              // 6  gruen
+  0x32A4,                                                              // 7  dunkel gruen
+  0xAE91,                                                              // 8  hell gruen
+  0x2146,                                                              // 9  dunkel grau blau
+  0x31E9,                                                              // 10 grau blau
+  0x84B6,                                                              // 11 hell blau
+  0xFFE0,                                                              // 12 gelb
+  0xFC08,                                                              // 13 orange
+  0xFA8A,                                                              // 14 hell rot
+  0xD759,                                                              // 15 hell gruen 2
+  0xF800,                                                              // 16 rot
+  0x8208,                                                              // 17 dunkel braun
+  0xC618,                                                              // 18 grau
+  0xF7BE,                                                              // 19 sehr hell grau
+  0xFE97,                                                              // 20 hell haut
+  0x4208,                                                              // 21 dunkel grau
+  0xA145,                                                              // 22 ziegel rot
+  0x6180,                                                              // 23 holz dunkel
+  0xFFFF,                                                              // 24 weiss
+};
+
+#define PALETTE_COUNT 25
+
+char mValuePrint[7];                                                   // Wird fuer die Zeichenausgabe
+                                                                       // von integer Werten verwendet.
+
+// ========================================================================================
+// gibt den Farbweter zurück,
 // der hinter der Farbnummer abgelegt wurde.
 // ----------------------------------------------------------------------------------------
-// c = Hinterlegter Farbwert, der für die Nummer festgelegt wurde.
-uint16_t mapNumberToColor(byte c) {
-  
-  uint16_t result = ST7735_RED;
+// c = Farbnummer. Ab 100 sind es die veraenderbaren Farben einer Figur (Haare, Shirt, Hose).
+uint16_t colorOf(byte c) {
 
-  switch(c)  {
-    case(1): { result = ST7735_BLACK; break; }
-    case(2): { result = 0xF590; break; }              // haut
-    case(3): { result = 0x81E1; break; }              // braun
-    case(4): { result = 0xC2C2; break; }              // hell braun
-    case(5): { result = 0x8300; break; }              // braun gelb
-    case(6): { result = 0x5406; break; }              // gruen
-    case(7): { result = 0x32A4; break; }              // dunkel gruen
-    case(8): { result = 0xAE91; break; }              // hell gruen
-    case(9): { result = 0x2146; break; }              // dunkel grau blau
-    case(10):{ result = 0x31E9; break; }              // grau blau
-    case(11):{ result = 0x84B6; break; }              // hell blau
-    case(12):{ result = 0xFFE0; break; }              // gelb
-    case(13):{ result = 0xFC08; break; }              // orange
-    case(14):{ result = 0xFA8A; break; }              // hell rot
-    case(15):{ result = 0xD759; break; }              // hell gruen 2
+  if(c >= 100) {
+    return getNpcColor(c);
+  }
 
-    case(16):{ result = 0xF800; break; }              // rot
-    case(17):{ result = 0x8208; break; }              // dunkel braun
-    case(18):{ result = 0xC618; break; }              // grau
-    case(19):{ result = 0xF7BE; break; }              // sehr hell grau
-    case(20):{ result = 0xFE97; break; }              // hell haut
+  if(c >= PALETTE_COUNT) {
+    return ST7735_RED;                                                 // unbekannte Farbe gut sichtbar
+  }
 
-    case(100):{ result = mSpriteHairColor1; break; }   // Haare 1
-    case(101):{ result = mSpriteHairColor2; break; }   // Haare 2
-    case(102):{ result = mSpriteShirtColor1; break; }  // T-Shirt 1
-    case(103):{ result = mSpriteShirtColor2; break; }  // T-Shirt 2
-    case(104):{ result = mSpritePantsColor1; break; }  // Hose 1
-    case(105):{ result = mSpritePantsColor2; break; }  // Hose 2
-    
-    default: {
-      result = 0;
-      break;
+  return pgm_read_word(&mPalette[c]);
+}
+
+// ========================================================================================
+// Setzt die Farbe eines Pixels aus allen Ebenen zusammen.
+// Wer weiter unten steht, wird davor gezeichnet.
+// ----------------------------------------------------------------------------------------
+// x, y = Bildschirm Position innerhalb der Karte
+uint16_t composePixel(int x, int y) {
+
+  byte c;
+
+  if(mPosY >= mNpcY) {                                                 // Figur steht vor Surie
+    c = getFigurePixel(x, y);
+    if(c == 0) { c = getNpcPixel(x, y); }
+  }
+  else {                                                               // Surie steht vor der Figur
+    c = getNpcPixel(x, y);
+    if(c == 0) { c = getFigurePixel(x, y); }
+  }
+
+  if(c == 0) {
+    c = getTilePixel(x, y);
+  }
+
+  return colorOf(c);
+}
+
+// ========================================================================================
+// Zeichnet einen Bereich der Karte neu.
+// ----------------------------------------------------------------------------------------
+// x, y          = Anfangsposition
+// width, height = Groesse des Bereiches
+void renderArea(int x, int y, int width, int height) {
+
+  if(x < 0) { width += x; x = 0; }                                     // auf die Karte begrenzen
+  if(y < 0) { height += y; y = 0; }
+  if(x + width > MAP_WIDTH) { width = MAP_WIDTH - x; }
+  if(y + height > MAP_HEIGHT) { height = MAP_HEIGHT - y; }
+
+  if(width <= 0 || height <= 0) {
+    return;
+  }
+
+  EsploraTFT.setAddrWindow(x, y, x + width - 1, y + height - 1);
+
+  for(int py = y; py < y + height; py++) {
+    for(int px = x; px < x + width; px++) {
+      EsploraTFT.pushColor(composePixel(px, py));
     }
   }
-
-  return result;
 }
 
 // ========================================================================================
-// Schreibt den Text in weis
+// Zeichnet ein Bild direkt aus dem Flash Speicher.
 // ----------------------------------------------------------------------------------------
-// x      =
-// y      =
-// text[] =
-void writeText(int x, int y, char text[]) {
-  EsploraTFT.stroke(200, 200, 200);
-  EsploraTFT.text(text, x, y);
+// x, y            = Anfangsposition
+// width, height   = Groesse des Bildes
+// icon            = Byte Array im Flash Speicher
+// backgroundColor = Farbnummer fuer durchsichtige Pixel
+void drawIcon(int x, int y, byte width, byte height, const byte* icon, byte backgroundColor) {
+
+  EsploraTFT.setAddrWindow(x, y, x + width - 1, y + height - 1);
+
+  int count = width * height;
+  for(int index = 0; index < count; index++) {
+    byte c = pgm_read_byte(icon + index);
+    EsploraTFT.pushColor(colorOf(c == 0 ? backgroundColor : c));
+  }
 }
 
 // ========================================================================================
-// Schreibt den Wert in weis. Mit dem zurueksetzen muss der akutelle Wert bekannt sein.
-// Damit beim zurücksetzten nicht die ganze flache neu ueberschrieben wird,
-// wird der selbe Text beim zurueck setzten mit Schwarz ueberschrieben.
+// Schreibt einen Text aus dem Flash Speicher (ohne Hintergrund).
 // ----------------------------------------------------------------------------------------
-// x      =
-// y      =
-// val    = 
-// clr    = Setzt den TExt zurück, bzw. der selbe Text wird geschrieben in Schwarz.
-void writeValue(int x, int y, int val, boolean clr) {
-  
-  if(clr) {
-    EsploraTFT.stroke(0, 0, 0);
+// x, y  = Anfangsposition
+// text  = Text im Flash Speicher
+// color = Farbwert (RGB565)
+void drawTextP(int x, int y, const char* text, uint16_t color) {
+
+  char c = pgm_read_byte(text);
+  while(c != 0) {
+    EsploraTFT.drawChar(x, y, c, color, color, 1);                     // gleiche Farbe = ohne Hintergrund
+    x += 6;
+    text++;
+    c = pgm_read_byte(text);
   }
-  else {
-    EsploraTFT.stroke(200, 200, 200);
+}
+
+// ========================================================================================
+// Schreibt eine Zahl (ohne Hintergrund).
+// ----------------------------------------------------------------------------------------
+// x, y  = Anfangsposition
+// value = Zahl
+// color = Farbwert (RGB565)
+void drawNumber(int x, int y, int value, uint16_t color) {
+
+  itoa(value, mValuePrint, 10);
+  for(byte i = 0; mValuePrint[i] != 0; i++) {
+    EsploraTFT.drawChar(x, y, mValuePrint[i], color, color, 1);
+    x += 6;
   }
-  String accResult = String(val);
-  accResult.toCharArray(mValuePrint, 5);
-  EsploraTFT.text(mValuePrint, x, y);
 }

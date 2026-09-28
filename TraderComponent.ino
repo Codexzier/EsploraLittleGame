@@ -2,42 +2,28 @@
 // Description:       Die Haendler und Kisten Funktionen werden hier unter gebracht.
 //                    Ein Handler kann verschiedene Rollen haben.
 //                    - Verkaeufer
+//                    - Auftraggeber (Surie wuenscht sich ein Foto)
 // ========================================================================================
-
-// ========================================================================================
-// Functionsvariablen, temp Variablen zum zwischen laden.
-char mTraderName[1];
-char mTraderdescription[1];
-byte mTraderItems[4];
-
-// ========================================================================================
-// Coins
-
-// Muenzen im Besitz
-int16_t mCoins = 25;
-int16_t mLastStateCoins = 0;
 
 // ========================================================================================
 // Common Text
 
-const PROGMEM char mTraderStartText[] = "Hallo, was darf ich ihnen verkaufen?";    // Begruessungstext (Sollte immer verschieden sein.)
+const PROGMEM char mTraderIntroText[] = "Hallo, ich bin Surie! Ich wuensche mir ein Foto von Baum und Haus im Garten. Eine Kamera verkaufe ich dir fuer 200 Muenzen.";
+const PROGMEM char mTraderStartText[] = "Hallo, was darf ich dir verkaufen?";      // Begruessungstext
+const PROGMEM char mTraderThanksText[] = "Danke nochmal fuer das schoene Foto!";  // Begruessung nach dem Auftrag
 const PROGMEM char mTraderNotEnough[] = "Du hast nicht genug Muenzen.";            // Wenn zu wenig Muenzen zum Kaufen da sind
-const PROGMEM char mTraderYouWantToBuy[] = "Kaufen?";                              // Frage zum Kauf
+const PROGMEM char mTraderBoughtText[] = "Danke! Viel Spass mit der Kamera.";
+const PROGMEM char mTraderSoldText[] = "Danke, ich nehme sie gerne zurueck.";
+const PROGMEM char mTraderPhotoText[] = "Wunderschoen! Genau so habe ich es mir vorgestellt. Hier sind 150 Muenzen fuer dich!";
 
 // ========================================================================================
 // Common Sprite
 
-const PROGMEM byte mTraderSpriteFrontMen[160] = {                                  // Bild vom Haendler / Die Farbe des Shirts, kann veraendert werden.
+const PROGMEM byte mTraderSpriteFrontMen[160] = {                                  // Bild vom Haendler / Die Farbe des Shirts, kann veraendert werden.                                  // Bild vom Haendler / Die Farbe des Shirts, kann veraendert werden.
   0,0,1,1,1,1,1,1,0,0,0,1,100,100,100,100,100,100,1,0,1,100,100,100,100,101,100,100,100,1,1,100,100,101,2,101,101,100,100,1,1,100,5,5,2,2,5,5,100,1,1,101,101,1,2,2,1,101,100,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,0,0,0,1,102,102,3,3,102,102,1,0,1,102,103,102,102,102,102,103,102,1,1,2,1,102,102,102,102,1,2,1,0,1,1,104,105,105,104,1,1,0,0,0,1,104,105,105,104,1,0,0,0,0,1,104,105,105,104,1,0,0,0,0,1,9,10,10,9,1,0,0,0,0,0,1,1,1,1,0,0,0 
 };
-const PROGMEM byte mTraderSpriteFrontWomen[160] = {                                // Bild vom Haendlerin / Die Farbe des Shirts, kann veraendert werden.
+const PROGMEM byte mTraderSpriteFrontWomen[160] = {                                // Bild vom Haendlerin / Die Farbe des Shirts, kann veraendert werden.                                // Bild vom Haendlerin / Die Farbe des Shirts, kann veraendert werden.
   0,0,1,1,1,1,1,1,0,0,0,1,100,100,100,100,100,101,1,0,1,101,100,100,100,101,100,100,100,1,1,100,100,101,20,101,101,100,100,1,1,100,5,5,20,20,5,5,100,1,1,100,101,1,20,20,1,101,100,1,1,100,20,1,20,20,1,20,100,1,1,100,2,20,20,20,20,2,100,1,0,1,102,102,20,20,102,102,1,0,1,102,103,102,102,102,102,103,102,1,1,20,105,103,103,103,103,105,20,1,0,1,105,104,104,104,104,105,1,0,0,1,105,104,104,104,104,105,1,0,1,105,105,104,104,104,104,105,105,1,0,1,105,9,10,10,9,105,1,0,0,0,1,1,1,1,1,1,0,0 
-};
-const PROGMEM byte mBoxSpriteFront[100] = { 
-  1,1,1,1,1,1,1,1,1,1,1,106,106,1,1,1,1,106,106,1,1,106,106,1,12,12,1,106,106,1,1,106,106,1,12,12,1,106,106,1,1,1,1,1,1,1,1,1,1,1,1,106,106,106,106,106,106,106,106,1,1,106,106,106,106,106,106,106,106,1,1,106,106,106,106,106,106,106,106,1,1,106,106,106,106,106,106,106,106,1,1,1,1,1,1,1,1,1,1,1 
-};
-const PROGMEM byte mCoinSpiteIcon[49] = { 
-  0,14,12,12,12,5,0,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,0,14,12,12,12,5,0 
 };
 
 // ========================================================================================
@@ -48,14 +34,13 @@ const PROGMEM byte mCoinSpiteIcon[49] = {
 // ========================================================================================
 // ID 1
 // Name des Handlers
-const PROGMEM char mTrader01Name[5] = "Surie";
+const PROGMEM char mTrader01Name[] = "Surie";
 // Kurze Beschreibung
-const PROGMEM char mTrader01Description[11] = "Verkaeferin";
+const PROGMEM char mTrader01Description[] = "Verkaeuferin";
 // Dinge zum verkauf
-const PROGMEM byte mTrader01Items[4] = { 2, 0, 0, 0 }; // 2 = Kamera
-// 0 = Taschenplaetze werden wie angegeben befullt. 
-// Stellen werden Stellenweise in Bit herausgenommen
-byte mTrader01ItemsClear = 0; 
+const PROGMEM byte mTrader01Items[4] = { ITEM_CAMERA, 0, 0, 0 };
+// Farben: Haare 1, Haare 2, T-Shirt 1, T-Shirt 2, Hose 1, Hose 2 (Farbnummer 100 bis 105)
+const PROGMEM uint16_t mTrader01Colors[6] = { 0xEEEC, 0xE662, 0xD69A, 0xB596, 0x0418, 0x0312 };
 
 // ========================================================================================
 // Box
@@ -66,122 +51,173 @@ byte mTrader01ItemsClear = 0;
 
 // ========================================================================================
 // ID 1
-// Name des Handlers
-const PROGMEM char mBox01Name[11] = "Meine Kiste";
+// Name der Kiste
+const PROGMEM char mBox01Name[] = "Meine Kiste";
 // Kurze Beschreibung
-const PROGMEM char mBox01Description[25] = "Dinge die man so braucht.";
-// Dinge zum verkauf
-const PROGMEM byte mBox01Items[4] = { 3, 0, 0, 0 }; // 3 = Foto
+const PROGMEM char mBox01Description[] = "Dinge die man so braucht.";
+const PROGMEM char mBox01FoundText[] = "Du findest 75 Muenzen!";
+const PROGMEM char mBox01EmptyText[] = "Die Kiste ist leer.";
+
+// ========================================================================================
+// Functionsvariablen
+
+byte mChestIndex = NO_TILE;                                            // Kachel Index der geoeffneten Kiste
+int16_t mLastStateCoins = -1;                                          // zuletzt angezeigter Muenzstand
 
 // ========================================================================================
 // Methoden
 // ========================================================================================
 
 // ========================================================================================
+// Liefert die Farbnummer von Surie an einer Bildschirm Position.
 // ----------------------------------------------------------------------------------------
-// arrayContent[]   = 
-// traderItemsClear =
-void memCopyItems(byte arrayContent[], byte traderItemsClear) {
+// x, y     = Bildschirm Position
+// Rueckgabe = Farbnummer, 0 = transparent / nicht getroffen
+byte getNpcPixel(int x, int y) {
 
-  if(traderItemsClear == 128) { 
-    traderItemsClear-= 128;
-    mTraderItems[0] = 0;
-  }
-  else {
-    mTraderItems[0] = pgm_read_byte_near(arrayContent + 0);
+  if(!mNpcActive) {
+    return 0;
   }
 
-  if(traderItemsClear >= 64) { 
-    traderItemsClear-= 64;
-    mTraderItems[1] = 0;
-  }
-  else {
-    mTraderItems[1] = pgm_read_byte_near(arrayContent + 1);
+  int localX = x - mNpcX;
+  int localY = y - mNpcY;
+
+  if(localX < 0 || localX >= FIGURE_WIDTH || localY < 0 || localY >= FIGURE_HEIGHT) {
+    return 0;
   }
 
-  if(traderItemsClear >= 32) { 
-    traderItemsClear-= 32;
-    mTraderItems[2] = 0;
-  }
-  else {
-    mTraderItems[2] = pgm_read_byte_near(arrayContent + 2);
-  }
-
-  if(traderItemsClear >= 16) { 
-    traderItemsClear-= 16;
-    mTraderItems[3] = 0;
-  }
-  else {
-    mTraderItems[3] = pgm_read_byte_near(arrayContent + 3);
-  }
+  return pgm_read_byte(mTraderSpriteFrontWomen + localY * FIGURE_WIDTH + localX);
 }
 
 // ========================================================================================
-// Zeichnet den Handler/in mit dem passenden sprite
-// ----------------------------------------------------------------------------------------
-// traderId
-// positionX =
-// positionY =
-void drawTrader(int16_t traderId, int16_t positionX, int16_t positionY) {
+// Liefert die veraenderbaren Farben von Surie (Farbnummer 100 bis 105).
+uint16_t getNpcColor(byte c) {
 
-  if(!mMapFigureRerender) {
+  if(c < 100 || c > 105) {
+    return ST7735_RED;
+  }
+
+  return pgm_read_word(&mTrader01Colors[c - 100]);
+}
+
+// ========================================================================================
+// Gespraech mit Surie. Beim ersten Mal gibt es den Auftrag, danach wird gehandelt.
+void openTraderWindow() {
+
+  if(mQuestState == QUEST_START) {
+    mQuestState = QUEST_TALKED;
+    openWindow(WIN_MESSAGE, mTrader01Name, mTraderIntroText);
+    drawGoal(false);
     return;
   }
 
-  // zurueck setzen
-  mMapFigureRerender = false;
-  
-  switch(traderId) {
-    case(1): {
-      // Farbe des Haenderls/in
-      mSpriteHairColor1 =  0xEEEC; mSpriteHairColor2 = 0xE662;  // hell Braun 1, hell braun 2
-      mSpriteShirtColor1 = 0xD69A; mSpriteShirtColor2 = 0xB596;  // hell grau, grau
-      mSpritePantsColor1 = 0x0418; mSpritePantsColor2 = 0x0312;  // Blau 1, blau
-      memCopy(mTraderSpriteFrontWomen);                         // sprite einer Weiblichen figur
-      memCopyItems(mTrader01Items, mTrader01ItemsClear);         // Taschen Inhalt
-      break;
-    }
-    case(2): {
-      // Farbe des Haenderls/in
-      mSpriteHairColor1 = 0xD615;  mSpriteHairColor2 = 0xBD30;  // hell Braun 1, hell braun 2
-      mSpriteShirtColor1 = 0xD69A; mSpriteShirtColor2 = 0xB596; // hell grau, grau
-      mSpritePantsColor1 = 0x0418; mSpritePantsColor2 = 0x0312; // Blau 1, blau
-      memCopy(mTraderSpriteFrontMen);                          // sprite einer maenlichen figur
-      // Taschen Inhalt
-      break;
-    }
-    default: {
-      break;
+  openWindow(WIN_CHOICE, mTrader01Name, 
+             mQuestState == QUEST_DONE ? mTraderThanksText : mTraderStartText);
+
+  if(hasItem(ITEM_PHOTO)) {
+    addWindowOption(OPT_GIVE_PHOTO);
+  }
+
+  for(byte i = 0; i < 4; i++) {                                        // Dinge zum Verkauf anbieten
+    if(pgm_read_byte(&mTrader01Items[i]) == ITEM_CAMERA && !hasItem(ITEM_CAMERA)) {
+      addWindowOption(OPT_BUY_CAMERA);
     }
   }
-  
-  drawTile(positionX, positionY, 10, 16, mTempArray, false); 
+
+  if(hasItem(ITEM_CAMERA) && mQuestState == QUEST_DONE) {              // erst nach dem Auftrag, sonst fehlen Muenzen
+    addWindowOption(OPT_SELL_CAMERA);
+  }
+
+  addWindowOption(OPT_BYE);
 }
 
 // ========================================================================================
-// Zeichnet die Box
-void drawBox(int16_t boxId, int16_t positionX, int16_t positionY) {
-  switch(boxId) {
-    case(1): {
-      mBoxColor = 0xDCFE;
-      break;
-    }
-    default: { break; }
+// Kauft ein Item bei Surie.
+void traderBuy(uint16_t itemId) {
+
+  int16_t price = getItemBuyValue(itemId);
+
+  if(mCoins < price) {
+    openWindow(WIN_MESSAGE, mTrader01Name, mTraderNotEnough);
+    return;
   }
 
-  memCopy(mBoxSpriteFront); 
-  drawTile(positionX, positionY, 10, 10, mTempArray, false);
+  if(!addItem(itemId)) {
+    openWindow(WIN_MESSAGE, mTrader01Name, mBackpackFullText);
+    return;
+  }
+
+  addCoins(-price);
+  openWindow(WIN_MESSAGE, mTrader01Name, mTraderBoughtText);
 }
 
 // ========================================================================================
-// rendert oben links die Coin Stand.
+// Verkauft ein Item an Surie.
+void traderSell(uint16_t itemId) {
+
+  if(removeItem(itemId)) {
+    addCoins(getItemSellValue(itemId));
+  }
+
+  openWindow(WIN_MESSAGE, mTrader01Name, mTraderSoldText);
+}
+
+// ========================================================================================
+// Surie bekommt das Foto. Danach wird das Abschluss Fenster gezeigt.
+void traderTakePhoto() {
+
+  removeItem(ITEM_PHOTO);
+  mQuestState = QUEST_DONE;
+  addCoins(PHOTO_REWARD);
+  openWindow(WIN_MESSAGE, mTrader01Name, mTraderPhotoText);
+  mWindowShowEndNext = true;
+}
+
+// ========================================================================================
+// Die Figur steht vor der Kiste.
+// ----------------------------------------------------------------------------------------
+// index = Kachel Index der Kiste
+void openChestWindow(byte index) {
+
+  mChestIndex = index;
+
+  if(isTileConsumed(index)) {
+    openWindow(WIN_MESSAGE, mBox01Name, mBox01EmptyText);
+    return;
+  }
+
+  openWindow(WIN_CHOICE, mBox01Name, mBox01Description);
+  addWindowOption(OPT_OPEN_CHEST);
+  addWindowOption(OPT_KEEP_CLOSED);
+}
+
+// ========================================================================================
+// Oeffnet die Kiste und nimmt den Inhalt heraus.
+void openChest() {
+
+  consumeTile(mChestIndex);                                            // Kiste ist jetzt leer
+  addCoins(CHEST_COINS);
+  openWindow(WIN_MESSAGE, mBox01Name, mBox01FoundText);
+}
+
+// ========================================================================================
+// Muenzen hinzufuegen (oder mit negativem Wert abziehen).
+void addCoins(int16_t value) {
+
+  mCoins += value;
+  drawCoinsStatus(false);
+  drawGoal(false);
+}
+
+// ========================================================================================
+// rendert unten rechts den Coin Stand.
 // redraw = zeichnet den stand ohne veränderung des Coin status neu.
 void drawCoinsStatus(bool redraw) {
+
   if(mCoins != mLastStateCoins || redraw) {
-    EsploraTFT.fillRect(2, 2, 30, 9, mapNumberToColor(1));
-    memCopy(mCoinSpiteIcon);
-    drawTile(3, 3, 7, 7, mTempArray, false);
-    writeValue(12, 3, mCoins, false);
+    EsploraTFT.fillRect(51, HUD_POS_Y + 1, MAP_WIDTH - 51, 9, colorOf(1));
+    drawIcon(51, HUD_POS_Y + 2, 7, 7, mCoinSpiteIcon, 1);
+    drawNumber(61, HUD_POS_Y + 2, mCoins, colorOf(12));
     mLastStateCoins = mCoins;
   }
 }

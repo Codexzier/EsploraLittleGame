@@ -5,16 +5,16 @@
 // ========================================================================================
 // Variablen
 
-int mAnimStep = 0;                           // wird verwendet, um zu bestimmen, 
-                                            // welchers Sprite Bild beim Rendern verwendet werden soll.
+byte mAnimStep = 1;                                                    // wird verwendet, um zu bestimmen, 
+                                                                      // welchers Sprite Bild beim Rendern verwendet werden soll.
+byte mAnimCounter = 0;                                                 // zaehlt die Bewegungsschritte bis zum naechsten Bild
+#define ANIM_STEPS_PER_FRAME 5                                         // Pixel Schritte je Animationsbild
 
-byte mAnimSequenz[4] = { 0, 1, 2, 1 };       // Animationssequenz. Ist um ein paar Bytes kleiner, 
-                                            // als wenn man die function in case 1 nochmal in default einträgt.
+byte mAnimSequenz[4] = { 0, 1, 2, 1 };                                 // Animationssequenz. Ist um ein paar Bytes kleiner, 
+                                                                      // als wenn man die function in case 1 nochmal in default einträgt.
 
 // ========================================================================================
 // Figur Sprites
-
-byte mTempArray[160];                                                  // Zwischenspeicher für das laden des akutellen byte array das ein sprite abbildet.
 
 const PROGMEM byte mSpriteFigureFrontLeft[160] = {
   0,0,1,1,1,1,1,1,0,0,0,1,3,3,3,3,3,3,1,0,1,3,3,3,3,3,3,3,3,1,1,3,3,4,4,2,4,3,3,1,1,3,5,5,2,2,5,5,3,1,1,3,4,1,2,2,1,4,3,1,0,1,2,1,2,2,1,2,1,0,0,0,1,2,2,2,2,1,1,0,0,1,8,8,3,3,8,8,6,1,1,8,8,8,8,8,8,6,2,1,1,2,1,8,8,8,8,1,1,0,0,1,1,10,10,7,7,1,0,0,0,1,9,10,1,7,6,1,0,0,0,0,1,1,1,7,6,1,0,0,0,0,0,0,1,9,11,1,0,0,0,0,0,0,0,1,1,0,0,0
@@ -46,65 +46,69 @@ const PROGMEM byte mSpriteFigureBackMiddle[160] = {
 
 
 // ========================================================================================
-// Zeichnet die Sprite Figur mit Bewegungsanimation
-// ----------------------------------------------------------------------------------------
-// directionX = Ausrichtung für Links und rechts
-// directionY = Ausrichtung für hoch und runter
-// relationX  = Horizontale Start Render Position
-// relationY  = Vertikale Start Render Position
-void drawFigure(int directionX, int directionY, int relationX, int relationY) {
+// Naechstes Bild der Laufanimation.
+void figureAdvanceAnimation() {
 
-  if(mGameTime % 4 > 0) {
-    
-    if(mAnimStep > 2) { 
-      mAnimStep = 0;
-    }
-    else { 
-      mAnimStep++; 
-    }
-  }
-
-  if(directionX == 0 && directionY == 1) {
-    switch(mAnimSequenz[mAnimStep]){
-      case(0): { memCopy(mSpriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, mTempArray, false); break; }
-      case(1): { memCopy(mSpriteFigureFrontMiddle); drawTile(relationX, relationY, 10, 16, mTempArray, false); break; }
-      case(2): { memCopy(mSpriteFigureFrontLeft); drawTile(relationX, relationY, 10, 16, mTempArray, true); break; }
-      default: {  break; }
-    }
-  }
-  else if(directionX == -1 && directionY == 0) {
-    switch(mAnimSequenz[mAnimStep]){
-      case(0): { memCopy(mSpriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, mTempArray, false);  break; }
-      case(1): { memCopy(mSpriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, mTempArray, false); break; }
-      case(2): { memCopy(mSpriteFigureSideRight); drawTile(relationX, relationY, 10, 16, mTempArray, false); break; }
-      default: { break; }
-    }
-  }
-  else if(directionX == 0 && directionY == -1) {
-    switch(mAnimSequenz[mAnimStep]){
-      case(0): { memCopy(mSpriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, mTempArray, false);  break; }
-      case(1): { memCopy(mSpriteFigureBackMiddle); drawTile(relationX, relationY, 10, 16, mTempArray, false);  break; }
-      case(2): { memCopy(mSpriteFigureBackLeft); drawTile(relationX, relationY, 10, 16, mTempArray, true);  break; }
-      default: {  break; }
-    }
-  }
-  else if(directionX == 1 && directionY == 0) {
-    switch(mAnimSequenz[mAnimStep]){
-      case(0): { memCopy(mSpriteFigureSideLeft); drawTile(relationX, relationY, 10, 16, mTempArray, true); break; }
-      case(1): { memCopy(mSpriteFigureSideMiddle); drawTile(relationX, relationY, 10, 16, mTempArray, true); break; }
-      case(2): { memCopy(mSpriteFigureSideRight); drawTile(relationX, relationY, 10, 16, mTempArray, true);  break; }
-      default: { break; }
-    }
+  mAnimCounter++;
+  if(mAnimCounter >= ANIM_STEPS_PER_FRAME) {
+    mAnimCounter = 0;
+    mAnimStep = (mAnimStep + 1) % 4;
   }
 }
 
 // ========================================================================================
-// Kopiert den Array Inhalt vom Flashspeicher in den SRAM
-// Wird am meisten für die Spiel Figur verwendet.
+// Figur steht (mittleres Bild).
+void figureStand() {
+  mAnimStep = 1;
+  mAnimCounter = 0;
+}
+
+// ========================================================================================
+// Liefert die Farbnummer der Figur an einer Bildschirm Position.
+// Das Sprite wird passend zur Blickrichtung und zum Animationsschritt gewaehlt
+// und direkt aus dem Flash Speicher gelesen (kein Zwischenspeicher im SRAM).
 // ----------------------------------------------------------------------------------------
-// arrayContent[] = die zu kopierende byte Kette.
-void memCopy(byte arrayContent[]) {                                    
-  for(byte index = 0; index < 160; index++) {
-    mTempArray[index] = pgm_read_byte_near(arrayContent + index);
+// x, y     = Bildschirm Position
+// Rueckgabe = Farbnummer, 0 = transparent / nicht getroffen
+byte getFigurePixel(int x, int y) {
+
+  int localX = x - mPosX;
+  int localY = y - mPosY;
+
+  if(localX < 0 || localX >= FIGURE_WIDTH || localY < 0 || localY >= FIGURE_HEIGHT) {
+    return 0;
   }
+
+  const byte* sprite;
+  bool mirror = false;
+  byte frame = mAnimSequenz[mAnimStep];
+
+  if(mFacingY == 1) {                                                  // nach unten
+    switch(frame){
+      case(0): { sprite = mSpriteFigureFrontLeft; break; }
+      case(1): { sprite = mSpriteFigureFrontMiddle; break; }
+      default: { sprite = mSpriteFigureFrontLeft; mirror = true; break; }
+    }
+  }
+  else if(mFacingY == -1) {                                            // nach oben
+    switch(frame){
+      case(0): { sprite = mSpriteFigureBackLeft; break; }
+      case(1): { sprite = mSpriteFigureBackMiddle; break; }
+      default: { sprite = mSpriteFigureBackLeft; mirror = true; break; }
+    }
+  }
+  else {                                                               // nach links, nach rechts gespiegelt
+    switch(frame){
+      case(0): { sprite = mSpriteFigureSideLeft; break; }
+      case(1): { sprite = mSpriteFigureSideMiddle; break; }
+      default: { sprite = mSpriteFigureSideRight; break; }
+    }
+    mirror = (mFacingX == 1);
+  }
+
+  if(mirror) {
+    localX = FIGURE_WIDTH - 1 - localX;
+  }
+
+  return pgm_read_byte(sprite + localY * FIGURE_WIDTH + localX);
 }
