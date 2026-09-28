@@ -83,7 +83,18 @@ bool isTileSolid(byte tile) {
     case(TILE_HOUSE_WALL):
     case(TILE_ROOF):
     case(TILE_HEDGE):
-    case(TILE_HOUSE_DOOR): { return true; }
+    case(TILE_HOUSE_DOOR):
+    case(TILE_WATER):
+    case(TILE_PALM):
+    case(TILE_BOAT):
+    case(TILE_BUS_SIGN):
+    case(TILE_FACADE):
+    case(TILE_FAR_ISLAND):
+    case(TILE_TABLE):
+    case(TILE_PICTURE_GARDEN):
+    case(TILE_PICTURE_BRIDGE):
+    case(TILE_PICTURE_ISLAND):
+    case(TILE_PICTURE_CITY): { return true; }
     default: { return false; }
   }
 }
@@ -91,7 +102,20 @@ bool isTileSolid(byte tile) {
 // ========================================================================================
 // Loest die Kachel beim Anstossen eine Aktion aus.
 bool isTileInteractive(byte tile) {
-  return tile == TILE_DOOR || tile == TILE_CHEST || tile == TILE_HOUSE_DOOR;
+
+  switch(tile) {
+    case(TILE_DOOR):
+    case(TILE_CHEST):
+    case(TILE_HOUSE_DOOR):
+    case(TILE_BOAT):
+    case(TILE_BUS_SIGN):
+    case(TILE_TABLE):
+    case(TILE_PICTURE_GARDEN):
+    case(TILE_PICTURE_BRIDGE):
+    case(TILE_PICTURE_ISLAND):
+    case(TILE_PICTURE_CITY): { return true; }
+    default: { return false; }
+  }
 }
 
 // ========================================================================================

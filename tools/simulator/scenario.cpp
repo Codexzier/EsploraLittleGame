@@ -58,6 +58,14 @@ static void walkY(int y) { walk(0, y > mPosY ? 1 : -1, [y]() { return mPosY == y
 static void bump(int dx, int dy) { walk(dx, dy, []() { return false; }); }
 static void walkToMap(int dx, byte mapId) { walk(dx, 0, [mapId]() { return mCurrentMap == mapId; }); }
 
+// wie walkToMap, schliesst aber Hinweis Fenster unterwegs (z.B. Fotopunkt mit fertigem Foto)
+static void walkToMapThrough(int dx, byte mapId) {
+  for(int i = 0; i < 5 && mCurrentMap != mapId; i++) {
+    walkToMap(dx, mapId);
+    if(mWindowType == WIN_MESSAGE) { press(SWITCH_4); }
+  }
+}
+
 static void check(bool ok, const char* what) {
   printf("  [%s] %s\n", ok ? " OK " : "FAIL", what);
   if(!ok) { gFailures++; }
@@ -80,14 +88,38 @@ static void shot(const char* name) {
   printf("  -> %s\n", name);
 }
 
+// Bildschirmfoto waehrend einer Animation (beim n-ten Aufruf von delay)
+static int gDelayCount = 0;
+static int gShotAtDelay = -1;
+static const char* gShotName = NULL;
+
+static void onDelay() {
+  gDelayCount++;
+  if(gDelayCount == gShotAtDelay) { shot(gShotName); }
+}
+
+static void shotDuringAnimation(const char* name, int atDelay) {
+  gDelayCount = 0;
+  gShotAtDelay = atDelay;
+  gShotName = name;
+  gOnDelay = onDelay;
+}
+
 // ----------------------------------------------------------------------------------------
 // Ablauf
 
 int main(int argc, char** argv) {
 
   if(argc > 1) { gOutDir = argv[1]; }
+  memset(gEeprom, 0xFF, sizeof(gEeprom));                              // leerer EEPROM wie ab Werk
   stick(0, 0);
   setup();
+  step(10);
+  check(mWindowType == WIN_TITLE && mWindowOptionCount == 1, "Startbildschirm ohne Spielstand: nur Neues Spiel");
+  shot("00_title");
+  press(SWITCH_2);
+  check(mWindowType == WIN_TITLE, "Button 2 schliesst den Startbildschirm nicht");
+  press(SWITCH_4);
   step(10);
   shot("01_start");
   check(mCurrentMap == MAP_HOUSE && mCoins == START_COINS, "Start im Haus mit 25 Muenzen");
@@ -208,6 +240,7 @@ int main(int argc, char** argv) {
   press(SWITCH_4);
   step(5);
   check(hasItem(ITEM_PHOTO), "Foto im Rucksack");
+  check(gLedFlashCount == 1, "Blitzlicht der RGB LED beim Foto");
   press(SWITCH_4);
   shot("12_garden_with_photo");
 
@@ -230,23 +263,207 @@ int main(int argc, char** argv) {
   check(mWindowChoice == 0, "Auswahl mit dem Joystick nach oben");
   press(SWITCH_4);
   step(5);
-  check(mQuestState == QUEST_DONE && mCoins == PHOTO_REWARD, "Foto abgegeben, 150 Muenzen");
+  check(mQuestState == QUEST_MORE_PHOTOS && mCoins == PHOTO_REWARD, "Foto abgegeben, 150 Muenzen");
   press(SWITCH_4);
   step(5);
-  check(mWindowType == WIN_END, "Abschluss Fenster");
-  shot("14_end");
+  check(mWindowType == WIN_MESSAGE, "Surie wuenscht sich drei weitere Fotos");
+  shot("14_more_photos");
   press(SWITCH_4);
   step(5);
-  shot("15_after_end");
+  check(mWindowType == WIN_NONE, "kein Spielende nach dem ersten Foto");
+
+  printf("Schritt: Bruecke\n");
+  walkY(48);
+  walkToMap(1, MAP_GARDEN);
+  walkToMapThrough(1, MAP_RIVER);
+  check(mCurrentMap == MAP_RIVER, "Hecke im Garten ist offen, Fluss erreicht");
+  shot("15a_river_map");
+  walkX(51);
+  walkY(32);
+  step(5);
+  check(mWindowType == WIN_CHOICE, "Fotopunkt an der Bruecke");
+  shot("15_river");
+  press(SWITCH_4);
+  step(5);
+  check(hasItem(ITEM_PHOTO_BRIDGE), "Foto der Bruecke im Rucksack");
+  press(SWITCH_4);
+
+  printf("Schritt: Hafen und Bootsticket\n");
+  walkY(48);
+  walkToMap(1, MAP_HARBOR);
+  check(mCurrentMap == MAP_HARBOR, "Hafen erreicht");
+  shot("16a_harbor_map");
+  bump(1, 0);
+  step(5);
+  check(mWindowType == WIN_CHOICE && mWindowOptions[0] == OPT_BUY_BOAT_TICKET, "Kapitaen bietet Ticket an");
+  shot("16_harbor_captain");
+  press(SWITCH_4);
+  step(5);
+  check(hasItem(ITEM_BOAT_TICKET) && mCoins == PHOTO_REWARD - BOAT_TICKET_PRICE, "Bootsticket gekauft");
+  press(SWITCH_4);
+  walkX(mPosX - 10);
+  bump(1, 0);
+  step(5);
+  check(mWindowType == WIN_CHOICE && mWindowOptions[0] == OPT_TRAVEL, "Kapitaen fragt nach Abfahrt");
+  shotDuringAnimation("17_sea_trip", 35);
+  press(SWITCH_4);
+  gOnDelay = NULL;
+  step(5);
+  check(mCurrentMap == MAP_ISLAND && mScene == SCENE_MAP, "Ankunft auf der Nachbarinsel");
+  check(Esplora.toneCount >= 3 && Esplora.toneFrequency == 0, "Schiffshorn gespielt und wieder aus");
+  shot("18_island");
+
+  printf("Schritt: Aus- und Einschalten, Spielstand laden\n");
+  int savedCoins = mCoins;
+  int savedX = mPosX;
+  int savedY = mPosY;
+  memset(mBackPlaces, 0, sizeof(mBackPlaces));                         // SRAM geht beim Ausschalten verloren
+  memset(mTileConsumed, 0, sizeof(mTileConsumed));
+  mQuestState = QUEST_START;
+  mCoins = 0;
+  setup();
+  step(10);
+  check(mWindowType == WIN_TITLE && mWindowOptionCount == 2 && mWindowChoice == 1,
+        "Startbildschirm mit Spielstand: Spiel laden ist vorausgewaehlt");
+  shot("18b_title_load");
+  press(SWITCH_4);
+  step(10);
+  check(mCurrentMap == MAP_ISLAND && mPosX == savedX && mPosY == savedY && mCoins == savedCoins &&
+        mQuestState == QUEST_MORE_PHOTOS && hasItem(ITEM_PHOTO_BRIDGE) && hasItem(ITEM_BOAT_TICKET) &&
+        isHouseDoorOpen(), "Spielstand geladen: Karte, Position, Muenzen, Rucksack, Fortschritt");
+
+  printf("Schritt: Insel\n");
+  walkY(32);
+  walkX(67);
+  step(5);
+  check(mWindowType == WIN_CHOICE, "Fotopunkt auf der Insel");
+  press(SWITCH_4);
+  step(5);
+  check(hasItem(ITEM_PHOTO_ISLAND), "Foto der Insel im Rucksack");
+  press(SWITCH_4);
+  walkY(48);
+  bump(-1, 0);
+  step(5);
+  check(mWindowType == WIN_CHOICE && mWindowOptions[0] == OPT_TRAVEL, "Kapitaen bietet Rueckfahrt an");
+  press(SWITCH_4);
+  step(5);
+  check(mCurrentMap == MAP_HARBOR && hasItem(ITEM_BOAT_TICKET), "zurueck im Hafen, Ticket gilt weiter");
+
+  printf("Schritt: Bushaltestelle\n");
+  walkY(16);
+  walkX(131);
+  walkY(32);
+  walkToMap(1, MAP_BUS_STOP);
+  check(mCurrentMap == MAP_BUS_STOP, "Bushaltestelle erreicht");
+  shot("19a_bus_stop_map");
+  walkX(99);
+  walkY(48);
+  bump(-1, 0);
+  step(5);
+  check(mWindowType == WIN_CHOICE && mWindowOptions[0] == OPT_BUY_BUS_TICKET, "Busfahrer bietet Ticket an");
+  shot("19_bus_stop");
+  press(SWITCH_4);
+  step(5);
+  check(hasItem(ITEM_BUS_TICKET) && mCoins == PHOTO_REWARD - BOAT_TICKET_PRICE - BUS_TICKET_PRICE,
+        "Busticket gekauft");
+  press(SWITCH_4);
+  walkX(mPosX + 8);
+  bump(-1, 0);
+  step(5);
+  shotDuringAnimation("20_bus_ride", 31);
+  press(SWITCH_4);
+  gOnDelay = NULL;
+  step(5);
+  check(mCurrentMap == MAP_CITY, "Ankunft am Stadtrand");
+  shot("21a_city_map");
+
+  printf("Schritt: Stadt\n");
+  walkY(32);
+  walkX(83);
+  step(5);
+  check(mWindowType == WIN_CHOICE, "Fotopunkt am Stadtrand");
+  shot("21_city");
+  press(SWITCH_4);
+  step(5);
+  check(hasAllNewPhotos(), "alle drei Fotos im Rucksack");
+  press(SWITCH_4);
+  walkY(48);
+  bump(-1, 0);
+  step(5);
+  press(SWITCH_4);
+  step(5);
+  check(mCurrentMap == MAP_BUS_STOP, "mit dem Bus zurueck");
+
+  printf("Schritt: Zurueck zu Surie\n");
+  walkY(32);
+  walkToMap(-1, MAP_HARBOR);
+  walkY(16);
+  walkX(67);
+  walkY(32);
+  walkToMap(-1, MAP_RIVER);
+  walkToMap(-1, MAP_GARDEN);
+  walkToMapThrough(-1, MAP_HOUSE);
+  check(mCurrentMap == MAP_HOUSE, "zurueck im Haus");
+  walkX(115);
+  bump(0, -1);
+  step(5);
+  check(mWindowOptionCount == 2 && mWindowOptions[0] == OPT_GIVE_PHOTOS, "Option: Fotos geben");
+  press(SWITCH_4);
+  step(5);
+  check(mQuestState == QUEST_PHOTOS_GIVEN && !hasItem(ITEM_PHOTO_CITY), "Fotos abgegeben");
+  shot("22_photos_given");
+  press(SWITCH_4);
+  step(5);
+  check(mWindowType == WIN_MESSAGE, "Surie laedt zum Kaffee ein");
+  press(SWITCH_4);
+  step(5);
+  check(!mNpcActive, "Surie hat den Laden verlassen");
+
+  printf("Schritt: Kaffee bei Surie\n");
+  walkY(48);
+  walkToMap(1, MAP_GARDEN);
+  walk(1, 0, []() { return mPosX == 99; });
+  if(mWindowType == WIN_MESSAGE) { press(SWITCH_4); }
+  walkX(99);
+  bump(0, -1);
+  step(5);
+  check(mCurrentMap == MAP_LIVING_ROOM, "Suries Haus betreten");
+  bump(0, -1);
+  step(5);
+  check(mWindowType == WIN_MESSAGE, "Foto an der Wand ansehen");
+  press(SWITCH_4);
+  walkY(64);
+  walkX(83);
+  bump(0, -1);
+  step(5);
+  shot("23_living_room");
+  check(mWindowType == WIN_CHOICE && mWindowOptions[0] == OPT_DRINK_COFFEE, "Surie bietet Kaffee an");
+  press(SWITCH_4);
+  step(5);
+  press(SWITCH_4);
+  step(5);
+  check(mWindowType == WIN_END && mQuestState == QUEST_COFFEE, "Abschluss Fenster nach dem Kaffee");
+  shot("24_end");
+  press(SWITCH_4);
+  step(5);
+  shot("25_after_end");
 
   printf("Schritt: Neustart\n");
   hold(SWITCH_1, 400);
-  check(mQuestState == QUEST_DONE, "kurzes Druecken setzt nicht zurueck");
+  check(mWindowType == WIN_NONE, "kurzes Druecken fuehrt nicht zum Startbildschirm");
   hold(SWITCH_1, 1200);
+  step(5);
+  check(mWindowType == WIN_TITLE && mWindowChoice == 1, "Button 1 halten: Startbildschirm");
+  stick(0, -1);
+  step(10);
+  stick(0, 0);
+  step(10);
+  check(mWindowChoice == 0, "Neues Spiel ausgewaehlt");
+  press(SWITCH_4);
   step(5);
   check(mQuestState == QUEST_START && mCoins == START_COINS && !hasItem(ITEM_KEY) &&
         mCurrentMap == MAP_HOUSE && !isHouseDoorOpen(), "Neustart setzt alles zurueck");
-  shot("16_reset");
+  shot("26_reset");
 
   printf("Statistik: %lu Pixel gesendet, %lu Adressfenster gesetzt\n",
          EsploraTFT.pixelWrites, EsploraTFT.addrWindowCount);

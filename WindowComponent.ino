@@ -17,8 +17,6 @@
 #define WIN_LINE_CHARS    23                                           // Zeichen pro Zeile
 #define WIN_LINE_HEIGHT   9                                            // Pixel pro Zeile
 
-int mWindowOptionsY = 0;                                               // Position der Auswahl im Fenster
-bool mWindowWaitRelease = false;                                       // erst navigieren, wenn der Stick losgelassen wurde
 
 // ----------------------------------------------------------------------------------------
 // Texte
@@ -31,6 +29,13 @@ const PROGMEM char mOptGivePhoto[] = "Gib Surie das Foto";
 const PROGMEM char mOptBye[] = "Tschuess";
 const PROGMEM char mOptTakePhoto[] = "Foto machen";
 const PROGMEM char mOptNotNow[] = "Nicht jetzt";
+const PROGMEM char mOptGivePhotos[] = "Gib Surie die Fotos";
+const PROGMEM char mOptBuyBoatTicket[] = "Kaufe Ticket (60)";
+const PROGMEM char mOptBuyBusTicket[] = "Kaufe Ticket (40)";
+const PROGMEM char mOptTravel[] = "Losfahren";
+const PROGMEM char mOptDrinkCoffee[] = "Kaffee trinken";
+const PROGMEM char mOptNewGame[] = "Neues Spiel";
+const PROGMEM char mOptLoadGame[] = "Spiel laden";
 
 const PROGMEM char mWindowFooterNext[] = "[4] Weiter";
 const PROGMEM char mWindowFooterChoice[] = "[4] OK    [2] Zurueck";
@@ -72,12 +77,37 @@ void closeWindow() {
 
   mWindowType = WIN_NONE;
   mWindowOptionCount = 0;
-  renderArea(WIN_X, WIN_Y, WIN_W, WIN_H);
 
-  if(mWindowShowEndNext) {
-    mWindowShowEndNext = false;
-    openEndWindow();
+  if(mWindowFollowType != WIN_NONE) {                                  // naechstes Fenster direkt anzeigen
+    byte type = mWindowFollowType;
+    mWindowFollowType = WIN_NONE;
+    openWindow(type, mWindowFollowTitle, mWindowFollowText);
+    return;
   }
+
+  if(mMapNeedsReload) {                                                // Figur hat die Karte verlassen
+    mMapNeedsReload = false;
+    byte latch = mBumpLatch;
+    reloadMap();
+    mBumpLatch = latch;
+    return;
+  }
+
+  renderArea(WIN_X, WIN_Y, WIN_W, WIN_H);
+  saveGame();                                                          // automatisch speichern
+}
+
+// ========================================================================================
+// Legt ein Fenster fest, das nach dem Schliessen des aktuellen Fensters folgt.
+// ----------------------------------------------------------------------------------------
+// type  = WIN_MESSAGE oder WIN_END
+// title = Titel im Flash Speicher
+// text  = Text im Flash Speicher
+void setWindowFollow(byte type, const char* title, const char* text) {
+
+  mWindowFollowType = type;
+  mWindowFollowTitle = title;
+  mWindowFollowText = text;
 }
 
 // ========================================================================================
@@ -106,14 +136,14 @@ void updateWindow(unsigned long now) {
   }
 
   if(buttonPressed(SWITCH_4)) {                                        // Bestaetigen
-    if(mWindowType == WIN_CHOICE) {
+    if(mWindowOptionCount > 0) {
       onWindowChoice(mWindowOptions[mWindowChoice]);
     }
     else {
       closeWindow();
     }
   }
-  else if(buttonPressed(SWITCH_2)) {                                   // Fenster schließen mit Button 2
+  else if(buttonPressed(SWITCH_2) && mWindowType != WIN_TITLE) {       // Fenster schließen mit Button 2
     closeWindow();
   }
 }
@@ -121,6 +151,12 @@ void updateWindow(unsigned long now) {
 // ========================================================================================
 // Zeichnet das Fenster mit einem Ensprechenden Text
 void drawWindow() {
+
+  if(mWindowType == WIN_TITLE) {                                       // Startbildschirm
+    drawTitle();
+    drawWindowOptions();
+    return;
+  }
 
   EsploraTFT.fillRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(1));
   EsploraTFT.drawRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(18));
@@ -170,6 +206,13 @@ const char* getOptionLabel(byte option) {
     case(OPT_GIVE_PHOTO):  { return mOptGivePhoto; }
     case(OPT_TAKE_PHOTO):  { return mOptTakePhoto; }
     case(OPT_NOT_NOW):     { return mOptNotNow; }
+    case(OPT_GIVE_PHOTOS): { return mOptGivePhotos; }
+    case(OPT_BUY_BOAT_TICKET): { return mOptBuyBoatTicket; }
+    case(OPT_BUY_BUS_TICKET):  { return mOptBuyBusTicket; }
+    case(OPT_TRAVEL):      { return mOptTravel; }
+    case(OPT_DRINK_COFFEE): { return mOptDrinkCoffee; }
+    case(OPT_NEW_GAME):    { return mOptNewGame; }
+    case(OPT_LOAD_GAME):   { return mOptLoadGame; }
     default:               { return mOptBye; }
   }
 }

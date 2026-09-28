@@ -1,15 +1,23 @@
 // ========================================================================================
-// Description:       Spielablauf "Suries Foto".
+// Description:       Spielablauf "Suries Fotos".
 //                    Hier wird entschieden, was beim Anstossen oder Betreten einer
 //                    Kachel passiert und welches Ziel gerade angezeigt wird.
 // ----------------------------------------------------------------------------------------
-// Ablauf:            1. Schluessel finden               (Haus, linker Raum)
+// Ablauf Teil 1:     1. Schluessel finden               (Haus, linker Raum)
 //                    2. Tuer oeffnen                    (Schluessel wird verbraucht)
 //                    3. Mit Surie sprechen              (Auftrag: Foto von Baum und Haus)
 //                    4. 200 Muenzen sammeln             (Start 25, Kiste 75, Garten 4 x 25)
 //                    5. Kamera bei Surie kaufen
 //                    6. Am Fotopunkt im Garten ein Foto machen
-//                    7. Foto bei Surie abgeben          (Belohnung 150 Muenzen)
+//                    7. Foto bei Surie abgeben          (150 Muenzen, neuer Auftrag: drei Fotos)
+// Ablauf Teil 2:     8. Foto der Bruecke                (Fluss, hinter der Hecke im Garten)
+//                    9. Foto der Insel                  (von der Nachbarinsel aus)
+//                   10. Bootsticket beim Kapitaen       (60 Muenzen, Rundfahrt mit Seekarte)
+//                   11. Foto der Stadt                  (Stadtrand)
+//                   12. Busticket beim Busfahrer        (40 Muenzen, Busfahrt)
+//                   13. Am Stadtrand fotografieren
+//                   14. Fotos bei Surie abgeben         (sie haengt sie in ihrem Haus auf)
+//                   15. Surie in ihrem Haus besuchen und Kaffee trinken
 // ========================================================================================
 
 // ========================================================================================
@@ -25,30 +33,49 @@ byte mLastGoal = 255;                                                  // zuletz
 const PROGMEM char mDoorTitle[] = "Tuer";
 const PROGMEM char mDoorLockedText[] = "Die Tuer ist verschlossen. Irgendwo muss ein Schluessel sein.";
 const PROGMEM char mDoorOpenedText[] = "Der Schluessel passt! Die Tuer ist jetzt offen.";
-const PROGMEM char mKeyFoundText[] = "Ein Schluessel! Damit laesst sich bestimmt eine Tuer oeffnen.";
+const PROGMEM char mKeyFoundText[] = "Ein Schluessel! Er oeffnet bestimmt eine Tuer.";
 const PROGMEM char mHouseDoorTitle[] = "Haustuer";
 const PROGMEM char mHouseDoorText[] = "Es ist niemand zu Hause.";
+const PROGMEM char mTableTitle[] = "Tisch";
+const PROGMEM char mTableText[] = "Kaffee und Kuchen stehen bereit.";
+const PROGMEM char mPictureTitle[] = "Foto an der Wand";
+const char* const PROGMEM mPictureTexts[] = {                          // Beschreibung der Fotos an der Wand
+  mItemPhoto01Description, mItemPhotoBridgeDescription, mItemPhotoIslandDescription, mItemPhotoCityDescription
+};
 const PROGMEM char mPhotoSpotTitle[] = "Fotopunkt";
 const PROGMEM char mPhotoSpotText[] = "Baum und Haus im Sonnenschein - ein schoenes Motiv!";
-const PROGMEM char mPhotoSpotNoCameraText[] = "Baum und Haus im Sonnenschein - ein schoenes Motiv! Haette ich nur eine Kamera...";
+const PROGMEM char mPhotoSpotBridgeText[] = "Die alte Bruecke ueber den Fluss - ein schoenes Motiv!";
+const PROGMEM char mPhotoSpotIslandText[] = "Eine kleine Insel mitten im Meer - ein schoenes Motiv!";
+const PROGMEM char mPhotoSpotCityText[] = "Die Stadt mit ihren vielen Haeusern - ein schoenes Motiv!";
+const PROGMEM char mPhotoSpotNoCameraText[] = "Ein schoenes Motiv! Haette ich nur eine Kamera...";
 const PROGMEM char mPhotoTakenText[] = "Klick! Das Foto ist jetzt im Rucksack.";
 const PROGMEM char mBackpackFullText[] = "Der Rucksack ist voll.";
 const PROGMEM char mEndTitle[] = "Geschafft!";
-const PROGMEM char mEndText[] = "Surie freut sich ueber ihr Foto. Danke fuers Spielen! Halte [1] fuer ein neues Spiel.";
+const PROGMEM char mEndText[] = "Die Fotos haengen an der Wand und ihr trinkt Kaffee. Danke fuers Spielen! [1] halten = Neues Spiel";
 
 // ----------------------------------------------------------------------------------------
-// Ziele (zwei Zeilen mit je hoechstens 18 Zeichen)
+// Ziele: zwei Zeilen mit je hoechstens 18 Zeichen, getrennt durch |
 
-#define GOAL_COUNT 8
-const PROGMEM char mGoalTexts[GOAL_COUNT][2][19] = {
-  { "Finde den",          "Schluessel."        },
-  { "Oeffne die Tuer.",   ""                   },
-  { "Sprich mit Surie.",  ""                   },
-  { "Sammle 200 Muenzen", "fuer die Kamera."   },
-  { "Kaufe die Kamera",   "bei Surie."         },
-  { "Fotografiere Baum",  "und Haus (Garten)." },
-  { "Bring Surie",        "das Foto."          },
-  { "Geschafft!",         "[1] halten = Neu"   },
+const PROGMEM char mGoal00[] = "Finde den|Schluessel.";
+const PROGMEM char mGoal01[] = "Oeffne die Tuer.";
+const PROGMEM char mGoal02[] = "Sprich mit Surie.";
+const PROGMEM char mGoal03[] = "Sammle 200 Muenzen|fuer die Kamera.";
+const PROGMEM char mGoal04[] = "Kaufe die Kamera|bei Surie.";
+const PROGMEM char mGoal05[] = "Fotografiere Baum|und Haus (Garten).";
+const PROGMEM char mGoal06[] = "Bring Surie|das Foto.";
+const PROGMEM char mGoal07[] = "Fotografiere die|Bruecke (Osten).";
+const PROGMEM char mGoal08[] = "Kaufe am Hafen|ein Bootsticket.";
+const PROGMEM char mGoal09[] = "Fotografiere die|Insel im Meer.";
+const PROGMEM char mGoal10[] = "Kaufe ein Ticket|beim Busfahrer.";
+const PROGMEM char mGoal11[] = "Fotografiere die|Stadt.";
+const PROGMEM char mGoal12[] = "Bring Surie|die drei Fotos.";
+const PROGMEM char mGoal13[] = "Besuche Surie in|ihrem Haus.";
+const PROGMEM char mGoal14[] = "Geschafft!|[1] halten = Neu";
+
+const char* const PROGMEM mGoalTexts[] = {
+  mGoal00, mGoal01, mGoal02, mGoal03, mGoal04,
+  mGoal05, mGoal06, mGoal07, mGoal08, mGoal09,
+  mGoal10, mGoal11, mGoal12, mGoal13, mGoal14
 };
 
 // ========================================================================================
@@ -62,7 +89,7 @@ const PROGMEM char mGoalTexts[GOAL_COUNT][2][19] = {
 void onBump(byte blocker) {
 
   if(blocker == MOVE_BLOCKED_NPC) {
-    openTraderWindow();
+    talkToNpc();
     return;
   }
 
@@ -70,7 +97,8 @@ void onBump(byte blocker) {
     return;
   }
 
-  switch(getTile(blocker)) {
+  byte tile = getTile(blocker);
+  switch(tile) {
     case(TILE_DOOR): {
       if(removeItem(ITEM_KEY)) {                                       // Schluessel wird verbraucht
         consumeTile(blocker);                                          // Tuer ist offen
@@ -87,10 +115,44 @@ void onBump(byte blocker) {
       break;
     }
     case(TILE_HOUSE_DOOR): {
-      openWindow(WIN_MESSAGE, mHouseDoorTitle, mHouseDoorText);
+      if(mQuestState >= QUEST_PHOTOS_GIVEN) {                          // Surie ist zu Hause
+        mFacingX = 0;
+        mFacingY = -1;
+        loadMap(MAP_LIVING_ROOM, 67, 64);
+      }
+      else {
+        openWindow(WIN_MESSAGE, mHouseDoorTitle, mHouseDoorText);
+      }
       break;
     }
-    default: { break; }
+    case(TILE_BOAT):                                                   // Boot und Schild gehoeren
+    case(TILE_BUS_SIGN): {                                             // zur Figur auf der Karte
+      talkToNpc();
+      break;
+    }
+    case(TILE_TABLE): {
+      openWindow(WIN_MESSAGE, mTableTitle, mTableText);
+      break;
+    }
+    default: {
+      if(tile >= TILE_PICTURE_GARDEN && tile <= TILE_PICTURE_CITY) {   // Fotos an der Wand
+        openWindow(WIN_MESSAGE, mPictureTitle,
+                   (const char*)pgm_read_ptr(&mPictureTexts[tile - TILE_PICTURE_GARDEN]));
+      }
+      break;
+    }
+  }
+}
+
+// ========================================================================================
+// Spricht die Figur auf der aktuellen Karte an.
+void talkToNpc() {
+
+  switch(mNpcType) {
+    case(NPC_SURIE):   { openTraderWindow(); break; }
+    case(NPC_CAPTAIN): { openCaptainWindow(); break; }
+    case(NPC_DRIVER):  { openDriverWindow(); break; }
+    default:           { break; }
   }
 }
 
@@ -123,20 +185,51 @@ void onEnterTile(byte index, byte tile) {
       break;
     }
     case(TILE_PHOTO_SPOT): {
-      if(hasItem(ITEM_PHOTO) || mQuestState == QUEST_DONE) {
-        openWindow(WIN_MESSAGE, mPhotoSpotTitle, mPhotoSpotText);
-      }
-      else if(hasItem(ITEM_CAMERA)) {
-        openWindow(WIN_CHOICE, mPhotoSpotTitle, mPhotoSpotText);
-        addWindowOption(OPT_TAKE_PHOTO);
-        addWindowOption(OPT_NOT_NOW);
-      }
-      else {
-        openWindow(WIN_MESSAGE, mPhotoSpotTitle, mPhotoSpotNoCameraText);
-      }
+      openPhotoSpotWindow();
       break;
     }
     default: { break; }
+  }
+}
+
+// ========================================================================================
+// Welches Foto kann auf der aktuellen Karte gemacht werden.
+uint16_t getPhotoOfMap() {
+
+  switch(mCurrentMap) {
+    case(MAP_RIVER):  { return ITEM_PHOTO_BRIDGE; }
+    case(MAP_ISLAND): { return ITEM_PHOTO_ISLAND; }
+    case(MAP_CITY):   { return ITEM_PHOTO_CITY; }
+    default:          { return ITEM_PHOTO; }
+  }
+}
+
+// ========================================================================================
+// Die Figur steht auf einem Fotopunkt.
+void openPhotoSpotWindow() {
+
+  uint16_t photo = getPhotoOfMap();
+  const char* text;
+  switch(photo) {
+    case(ITEM_PHOTO_BRIDGE): { text = mPhotoSpotBridgeText; break; }
+    case(ITEM_PHOTO_ISLAND): { text = mPhotoSpotIslandText; break; }
+    case(ITEM_PHOTO_CITY):   { text = mPhotoSpotCityText; break; }
+    default:                 { text = mPhotoSpotText; break; }
+  }
+
+  bool delivered = (photo == ITEM_PHOTO) ? mQuestState >= QUEST_MORE_PHOTOS
+                                         : mQuestState >= QUEST_PHOTOS_GIVEN;
+
+  if(hasItem(photo) || delivered) {                                    // Foto gibt es schon
+    openWindow(WIN_MESSAGE, mPhotoSpotTitle, text);
+  }
+  else if(hasItem(ITEM_CAMERA)) {
+    openWindow(WIN_CHOICE, mPhotoSpotTitle, text);
+    addWindowOption(OPT_TAKE_PHOTO);
+    addWindowOption(OPT_NOT_NOW);
+  }
+  else {
+    openWindow(WIN_MESSAGE, mPhotoSpotTitle, mPhotoSpotNoCameraText);
   }
 }
 
@@ -147,12 +240,20 @@ void onEnterTile(byte index, byte tile) {
 void onWindowChoice(byte option) {
 
   switch(option) {
-    case(OPT_OPEN_CHEST):  { openChest(); break; }
-    case(OPT_BUY_CAMERA):  { traderBuy(ITEM_CAMERA); break; }
-    case(OPT_SELL_CAMERA): { traderSell(ITEM_CAMERA); break; }
-    case(OPT_GIVE_PHOTO):  { traderTakePhoto(); break; }
+    case(OPT_OPEN_CHEST):      { openChest(); break; }
+    case(OPT_BUY_CAMERA):      { traderBuy(ITEM_CAMERA); break; }
+    case(OPT_SELL_CAMERA):     { traderSell(ITEM_CAMERA); break; }
+    case(OPT_GIVE_PHOTO):      { traderTakePhoto(); break; }
+    case(OPT_GIVE_PHOTOS):     { traderTakeAllPhotos(); break; }
+    case(OPT_BUY_BOAT_TICKET): { traderBuy(ITEM_BOAT_TICKET); break; }
+    case(OPT_BUY_BUS_TICKET):  { traderBuy(ITEM_BUS_TICKET); break; }
+    case(OPT_TRAVEL):          { travelWithNpc(); break; }
+    case(OPT_DRINK_COFFEE):    { traderDrinkCoffee(); break; }
+    case(OPT_NEW_GAME):        { resetGame(); break; }
+    case(OPT_LOAD_GAME):       { loadGame(); break; }
     case(OPT_TAKE_PHOTO): {
-      if(addItem(ITEM_PHOTO)) {
+      if(addItem(getPhotoOfMap())) {
+        cameraFlash();
         openWindow(WIN_MESSAGE, mPhotoSpotTitle, mPhotoTakenText);
       }
       else {
@@ -170,9 +271,26 @@ void onWindowChoice(byte option) {
 }
 
 // ========================================================================================
-// Oeffnet das Abschluss Fenster.
-void openEndWindow() {
-  openWindow(WIN_END, mEndTitle, mEndText);
+// Blitzlicht der Kamera mit der RGB LED des Esplora.
+// Die LED leuchtet voll weiss, dafuer reicht digitalWrite (spart den Flash Speicher
+// fuer analogWrite, das hinter Esplora.writeRGB steckt).
+#define LED_RED_PIN    5                                               // Pins der RGB LED (siehe Esplora.cpp)
+#define LED_GREEN_PIN  10
+#define LED_BLUE_PIN   9
+
+void cameraFlash() {
+
+  setLedWhite(HIGH);
+  delay(80);
+  setLedWhite(LOW);
+}
+
+// ========================================================================================
+// Schaltet alle drei Farben der RGB LED ein oder aus.
+void setLedWhite(byte state) {
+  digitalWrite(LED_RED_PIN, state);
+  digitalWrite(LED_GREEN_PIN, state);
+  digitalWrite(LED_BLUE_PIN, state);
 }
 
 // ========================================================================================
@@ -185,8 +303,17 @@ bool isHouseDoorOpen() {
 // Ermittelt das aktuelle Ziel aus dem Spielstand.
 byte getGoal() {
 
-  if(mQuestState == QUEST_DONE)         { return 7; }
-  if(hasItem(ITEM_PHOTO))               { return 6; }
+  if(mQuestState == QUEST_COFFEE)       { return 14; }
+  if(mQuestState == QUEST_PHOTOS_GIVEN) { return 13; }
+
+  if(mQuestState == QUEST_MORE_PHOTOS) {                               // Teil 2: drei Fotos
+    if(hasAllNewPhotos())               { return 12; }
+    if(!hasItem(ITEM_PHOTO_BRIDGE))     { return 7; }
+    if(!hasItem(ITEM_PHOTO_ISLAND))     { return hasItem(ITEM_BOAT_TICKET) ? 9 : 8; }
+    return hasItem(ITEM_BUS_TICKET) ? 11 : 10;
+  }
+
+  if(hasItem(ITEM_PHOTO))               { return 6; }                  // Teil 1: erstes Foto
   if(hasItem(ITEM_CAMERA))              { return 5; }
   if(!isHouseDoorOpen())                { return hasItem(ITEM_KEY) ? 1 : 0; }
   if(mQuestState == QUEST_START)        { return 2; }
@@ -207,8 +334,11 @@ void drawGoal(bool redraw) {
   mLastGoal = goal;
 
   EsploraTFT.fillRect(51, HUD_POS_Y + 12, MAP_WIDTH - 51, 20, colorOf(1));
-  drawTextP(51, HUD_POS_Y + 13, mGoalTexts[goal][0], colorOf(19));
-  drawTextP(51, HUD_POS_Y + 22, mGoalTexts[goal][1], colorOf(19));
+  const char* text = (const char*)pgm_read_ptr(&mGoalTexts[goal]);
+  text = drawTextP(51, HUD_POS_Y + 13, text, colorOf(19));             // erste Zeile bis zum |
+  if(pgm_read_byte(text) == '|') {
+    drawTextP(51, HUD_POS_Y + 22, text + 1, colorOf(19));              // zweite Zeile
+  }
 }
 
 // ========================================================================================

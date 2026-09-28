@@ -1,80 +1,51 @@
 // ========================================================================================
 // Description:       Grundeinstellung des Rucksackes
 //                    Der Rucksack hat 6 Taschenplaetze (unten links auf dem Bildschirm).
+//                    Die Icons stehen in AssetsData.ino (erzeugt mit tools/sprites.py).
 // ========================================================================================
 
 // ========================================================================================
 // Objeckte
 // Name (sollte sich auf moeglich wenig Zeichen beschraenken)
-// Bild (byte array)
+// Bild (gepacktes byte array in AssetsData.ino)
 // Beschreibung (nur bedingt verwenden)
-// Verwendungszweck (sollte nur eine ID sein)
 // Verkaufswert (einige Dinge können gehandelt werden)
 // Kaufwert (Haendler Preis)
 
 // ========================================================================================
 // ITEMS
 // ----------------------------------------------------------------------------------------
-// ID 0 
+// ID 0
 // '0' bedeutet immer nicht belegt.
 // ========================================================================================
 // ID 01
 
-const PROGMEM char mItemKey01[] = "Schluessel";                          // Name 
-const PROGMEM byte mItemKey01Icon[256] = {                              // Icon / Bild
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,0,
-  0,0,0,0,0,0,0,0,0,1,12,12,12,12,1,0,
-  0,1,1,1,1,1,1,1,1,12,1,0,0,1,12,1,
-  1,12,12,12,12,12,12,12,12,12,1,0,0,1,12,1,
-  0,1,1,1,1,12,1,12,1,12,1,0,0,1,12,1,
-  0,0,0,0,1,12,1,12,1,1,12,12,12,12,1,0,
-  0,0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-};
+const PROGMEM char mItemKey01[] = "Schluessel";                          // Name
 const PROGMEM char mItemKey01Description[] = "Oeffnet eine Tuer";      // Beschreibung
-const PROGMEM uint16_t mItemKey01Usage = 1;                              // Verwendungszweck Id  => kombinierte funktions abruf fur position und verknuepfte Tuer mit der selben Id
                                                                         // Verkaufswert         = 0 (Kann nicht verkauft werden)
                                                                         // Kaufwert             = 0 (Kann nicht erwaorben werden, Objekte wird gefunden oder vergeben)
 
 // ========================================================================================
-// ID 02 
+// ID 02
 
 const PROGMEM char mItemCamera[] = "Kamera";                            // Name
-const PROGMEM byte mItemCameraIcon[256] = {                              // Icon / Bild
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,1,9,9,9,9,9,9,1,0,0,0,0,0,1,1,1,1,9,19,19,19,19,9,1,1,1,1,0,1,9,9,9,9,9,9,1,1,9,9,9,9,9,9,1,1,9,9,9,9,1,1,11,11,1,1,9,19,19,9,1,1,9,9,9,9,1,11,11,11,11,1,9,19,19,9,1,1,9,9,9,1,11,11,11,11,11,11,1,9,9,9,1,1,9,9,9,1,11,11,11,11,11,11,1,9,9,9,1,1,9,9,9,9,1,11,11,11,11,1,9,9,9,9,1,1,9,9,9,9,1,1,11,11,1,1,9,9,9,9,1,1,9,9,9,9,9,9,1,1,9,9,9,9,9,9,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 
-};
 const PROGMEM char mItemCameraDescription[] = "Mach ein paar Fotos!";  // Beschreibung
-const PROGMEM uint16_t mItemCameraUsage = 2;                             // Verwendungszweck
 const PROGMEM uint16_t mItemCameraSellValue = 140;                       // Verkaufswert
 const PROGMEM uint16_t mItemCameraBuyValue = 200;                        // Kaufwert
 
 // ========================================================================================
-// ID 03 
+// ID 03 bis 06 (Fotos, werden fuer Suries Auftrag abgegeben)
 
-const PROGMEM char mItemPhoto01[] = "Foto 01";                          // Name
-const PROGMEM byte mItemPhoto01Icon[256] = {                             // Icon / Bild
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,19,19,19,19,19,19,19,19,19,19,19,12,19,19,1,1,19,19,18,18,18,19,19,19,19,19,12,12,12,19,1,1,19,18,18,18,18,18,19,18,19,12,12,12,12,12,1,1,19,19,18,18,19,19,18,19,19,19,12,12,12,19,1,1,19,19,19,19,19,19,19,19,19,19,19,12,19,19,1,1,19,19,19,19,19,19,19,19,19,19,19,19,19,19,1,1,19,19,19,19,19,19,19,19,19,19,19,19,19,19,1,1,19,19,6,19,19,19,19,19,19,19,17,19,19,19,1,1,19,6,6,6,19,19,19,19,19,17,17,17,19,19,1,1,19,6,6,6,19,19,19,19,17,11,17,3,17,19,1,1,19,19,3,19,19,19,19,19,17,11,17,3,17,19,1,1,19,19,3,19,19,19,19,19,17,17,17,3,17,19,1,1,8,8,8,8,8,8,8,8,8,8,8,8,8,8,1,1,8,8,8,8,8,8,8,8,8,8,8,8,8,8,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1 
-};
 const PROGMEM char mItemPhoto01Description[] = "Sonne, Baum und Haus"; // Beschreibung
-const PROGMEM uint16_t mItemPhoto01Usage = 3;                            // Verwendungszweck
-                                                                        // Verkaufswert = 0 (Kann nicht verkauft werden, Objekt wird für Aufgabe abgegeben)
-                                                                        // Kaufwert     = 0 (Kann nicht erwaorben werden, Objekte wird gefunden oder vergeben)
-
+const PROGMEM char mItemPhotoBridgeDescription[] = "Die alte Bruecke ueber den Fluss";
+const PROGMEM char mItemPhotoIslandDescription[] = "Die Insel mitten im Meer";
+const PROGMEM char mItemPhotoCityDescription[] = "Die Stadt mit ihren vielen Haeusern";
 
 // ========================================================================================
-// Muenze (wird im Rucksack Bereich und auf der Karte verwendet)
+// ID 07 und 08 (Tickets, gelten fuer beliebig viele Fahrten)
 
-const PROGMEM byte mCoinSpiteIcon[49] = { 
-  0,14,12,12,12,5,0,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,14,12,12,12,12,12,5,0,14,12,12,12,5,0 
-};
+const PROGMEM char mItemBoatTicket[] = "Bootsticket";
+const PROGMEM char mItemBusTicket[] = "Busticket";
 
 // ========================================================================================
 // Methoden
@@ -87,8 +58,8 @@ const PROGMEM byte mCoinSpiteIcon[49] = {
 bool hasItem(uint16_t itemId) {
 
   for(byte index = 0; index < BACKPACK_PLACES_COUNT; index++) {
-    if(mBackPlaces[index] == itemId) { 
-      return true; 
+    if(mBackPlaces[index] == itemId) {
+      return true;
     }
   }
 
@@ -102,7 +73,7 @@ bool hasItem(uint16_t itemId) {
 bool addItem(uint16_t itemId) {
 
   if(hasItem(itemId)) {
-    return false; 
+    return false;
   }
 
   for(byte index = 0; index < BACKPACK_PLACES_COUNT; index++) {        // id ablegen in ersten freien Taschenplatz
@@ -143,6 +114,23 @@ void drawBackpack() {
 }
 
 // ========================================================================================
+// Liefert das Icon zu einem Item (gepackt, 16x16).
+const byte* getItemIcon(uint16_t itemId) {
+
+  switch(itemId) {
+    case(ITEM_KEY):          { return mItemKey01Icon; }
+    case(ITEM_CAMERA):       { return mItemCameraIcon; }
+    case(ITEM_PHOTO):        { return mItemPhoto01Icon; }
+    case(ITEM_PHOTO_BRIDGE): { return mItemPhotoBridgeIcon; }
+    case(ITEM_PHOTO_ISLAND): { return mItemPhotoIslandIcon; }
+    case(ITEM_PHOTO_CITY):   { return mItemPhotoCityIcon; }
+    case(ITEM_BOAT_TICKET):  { return mItemBoatTicketIcon; }
+    case(ITEM_BUS_TICKET):   { return mItemBusTicketIcon; }
+    default:                 { return NULL; }                          // Nicht belegt
+  }
+}
+
+// ========================================================================================
 // Zeichnet einen Taschenplatz mit dem Icon des Items oder leer.
 // ----------------------------------------------------------------------------------------
 // place = Taschenplatz 0 bis 5
@@ -151,16 +139,10 @@ void drawBackpackPlace(byte place) {
   int x = (place % 3) * MAP_TILE_SIZE;                                  // drei Spalten
   int y = HUD_POS_Y + (place / 3) * MAP_TILE_SIZE;                      // zwei Zeilen
 
-  const byte* icon = NULL;                                              // abruf des Icon zu dem Item
-  switch(mBackPlaces[place]) {
-    case(ITEM_KEY):    { icon = mItemKey01Icon;   break; }             // Schluessel
-    case(ITEM_CAMERA): { icon = mItemCameraIcon;  break; }             // Fotoapparat
-    case(ITEM_PHOTO):  { icon = mItemPhoto01Icon; break; }             // Foto
-    default:           { break; }                                       // Nicht belegt
-  }
+  const byte* icon = getItemIcon(mBackPlaces[place]);
 
   if(icon != NULL) {
-    drawIcon(x, y, MAP_TILE_SIZE, MAP_TILE_SIZE, icon, 19);
+    drawPackedIcon(x, y, MAP_TILE_SIZE, MAP_TILE_SIZE, icon, 19);
   }
   else {
     EsploraTFT.fillRect(x, y, MAP_TILE_SIZE, MAP_TILE_SIZE, colorOf(19));
@@ -173,8 +155,13 @@ void drawBackpackPlace(byte place) {
 // ========================================================================================
 // Kaufwert eines Items (0 = kann nicht gekauft werden)
 uint16_t getItemBuyValue(uint16_t itemId) {
-  if(itemId == ITEM_CAMERA) { return pgm_read_word(&mItemCameraBuyValue); }
-  return 0;
+
+  switch(itemId) {
+    case(ITEM_CAMERA):      { return pgm_read_word(&mItemCameraBuyValue); }
+    case(ITEM_BOAT_TICKET): { return BOAT_TICKET_PRICE; }
+    case(ITEM_BUS_TICKET):  { return BUS_TICKET_PRICE; }
+    default:                { return 0; }
+  }
 }
 
 // ========================================================================================
@@ -182,4 +169,10 @@ uint16_t getItemBuyValue(uint16_t itemId) {
 uint16_t getItemSellValue(uint16_t itemId) {
   if(itemId == ITEM_CAMERA) { return pgm_read_word(&mItemCameraSellValue); }
   return 0;
+}
+
+// ========================================================================================
+// Hat die Figur alle drei neuen Fotos (Bruecke, Insel, Stadt).
+bool hasAllNewPhotos() {
+  return hasItem(ITEM_PHOTO_BRIDGE) && hasItem(ITEM_PHOTO_ISLAND) && hasItem(ITEM_PHOTO_CITY);
 }

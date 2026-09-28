@@ -18,6 +18,7 @@ typedef bool boolean;
 #define pgm_read_byte(p) (*(const uint8_t*)(p))
 #define pgm_read_byte_near(p) (*(const uint8_t*)(p))
 #define pgm_read_word(p) (*(const uint16_t*)(p))
+#define pgm_read_ptr(p) (*(const void* const*)(p))
 #define LOW 0
 #define HIGH 1
 
@@ -27,7 +28,9 @@ template <typename A, typename B> static inline A max(A a, B b) { return a > b ?
 static inline char* itoa(int value, char* buffer, int) { sprintf(buffer, "%d", value); return buffer; }
 
 extern unsigned long gSimMillis;
+extern void (*gOnDelay)();                                             // wird bei jedem delay() aufgerufen (Bildschirmfotos waehrend Animationen)
 static inline unsigned long millis() { return gSimMillis; }
+static inline void delay(unsigned long ms) { gSimMillis += ms; if(gOnDelay) { gOnDelay(); } }
 
 // ----------------------------------------------------------------------------------------
 // Display
@@ -93,12 +96,12 @@ public:
     if(curX > winX1) { curX = winX0; curY++; }
   }
 
-  void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t) {
+  void drawChar(int16_t x, int16_t y, unsigned char c, uint16_t color, uint16_t bg, uint8_t size) {
     for(int8_t i = 0; i < 6; i++) {                                    // wie Adafruit_GFX::drawChar
       uint8_t line = (i == 5) ? 0 : font[(c * 5) + i];
       for(int8_t j = 0; j < 8; j++) {
-        if(line & 0x1) { drawPixel(x + i, y + j, color); }
-        else if(bg != color) { drawPixel(x + i, y + j, bg); }
+        if(line & 0x1) { fillRect(x + i * size, y + j * size, size, size, color); }
+        else if(bg != color) { fillRect(x + i * size, y + j * size, size, size, bg); }
         line >>= 1;
       }
     }
@@ -121,9 +124,39 @@ public:
   int joystickY = 0;
   bool buttons[5] = { false, false, false, false, false };             // true = gedrueckt
 
+  byte red = 0, green = 0, blue = 0;                                   // RGB LED
+  int flashCount = 0;                                                  // wie oft die LED weiss geleuchtet hat
+  unsigned int toneFrequency = 0;                                      // zuletzt gespielter Ton
+  int toneCount = 0;                                                   // Anzahl gespielter Toene
+
+  void writeRGB(byte r, byte g, byte b) { red = r; green = g; blue = b; if(r == 255 && g == 255 && b == 255) { flashCount++; } }
+  void tone(unsigned int frequency) { toneFrequency = frequency; toneCount++; }
+  void tone(unsigned int, unsigned long) { toneCount++; }                // endet von selbst
+  void noTone() { toneFrequency = 0; }
+
   int readJoystickX() { return joystickX; }
   int readJoystickY() { return joystickY; }
   int readButton(byte sw) { return buttons[sw] ? LOW : HIGH; }
 };
 
 extern MockEsplora Esplora;
+
+// ----------------------------------------------------------------------------------------
+// Pins (RGB LED des Esplora: rot 5, gruen 10, blau 9)
+
+extern uint8_t gPinState[32];
+extern int gLedFlashCount;                                             // wie oft die LED weiss eingeschaltet wurde
+static inline void pinMode(uint8_t, uint8_t) {}
+static inline void digitalWrite(uint8_t pin, uint8_t value) {
+  gPinState[pin & 31] = value;
+  if(pin == 9 && value == HIGH && gPinState[5] == HIGH && gPinState[10] == HIGH) { gLedFlashCount++; }
+}
+
+// ----------------------------------------------------------------------------------------
+// EEPROM (1 KB wie beim ATmega32U4, Inhalt 0xFF wie ein geloeschter EEPROM)
+
+extern uint8_t gEeprom[1024];
+static inline uint8_t eeprom_read_byte(const uint8_t* address) { return gEeprom[(uintptr_t)address]; }
+static inline void eeprom_update_byte(uint8_t* address, uint8_t value) { gEeprom[(uintptr_t)address] = value; }
+static inline void eeprom_read_block(void* data, const void* address, size_t size) { memcpy(data, gEeprom + (uintptr_t)address, size); }
+static inline void eeprom_update_block(const void* data, void* address, size_t size) { memcpy(gEeprom + (uintptr_t)address, data, size); }
