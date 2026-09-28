@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Arduino Esplora - Suries Foto (Teil 10)
+// Projekt:       Arduino Esplora - Suries Fotos (Teil 11)
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // Sensors:       Joystick, Buttons
@@ -45,7 +45,17 @@
 
 #define MAP_HOUSE             0                                        // Haus mit zwei Raeumen
 #define MAP_GARDEN            1                                        // Garten mit Baum und Haus
-#define MAP_COUNT             2
+#define MAP_RIVER             2                                        // Fluss mit Bruecke
+#define MAP_HARBOR            3                                        // Hafen mit Kapitaen
+#define MAP_ISLAND            4                                        // Nachbarinsel
+#define MAP_BUS_STOP          5                                        // Bushaltestelle
+#define MAP_CITY              6                                        // Stadtrand
+#define MAP_LIVING_ROOM       7                                        // Suries Stube
+#define MAP_COUNT             8
+
+#define SCENE_MAP             0                                        // normale Karte
+#define SCENE_SEA             1                                        // Seekarte mit Schiff (Animation)
+#define SCENE_BUS             2                                        // Strasse mit Bus (Animation)
 
 #define TILE_FLOOR            0                                        // Boden (Haus)
 #define TILE_WALL             1                                        // Wand
@@ -63,7 +73,24 @@
 #define TILE_PHOTO_SPOT       15                                       // Fotopunkt
 #define TILE_HEDGE            16                                       // Hecke
 #define TILE_FLOWERS          17                                       // Blumen
-#define TILE_HOUSE_DOOR       18                                       // Haustuer (verschlossen)
+#define TILE_HOUSE_DOOR       18                                       // Haustuer von Suries Haus
+#define TILE_WATER            19                                       // Wasser
+#define TILE_BRIDGE           20                                       // Bruecke / Steg
+#define TILE_SAND             21                                       // Sand
+#define TILE_PALM             22                                       // Palme
+#define TILE_BOAT             23                                       // Boot
+#define TILE_ROAD             24                                       // Strasse
+#define TILE_BUS_SIGN         25                                       // Haltestellen Schild
+#define TILE_FACADE           26                                       // Hauswand in der Stadt
+#define TILE_FAR_ISLAND       27                                       // Insel in der Ferne
+#define TILE_TABLE            28                                       // Tisch mit Kaffee
+#define TILE_PICTURE_GARDEN   29                                       // Foto an der Wand: Baum und Haus
+#define TILE_PICTURE_BRIDGE   30                                       // Foto an der Wand: Bruecke
+#define TILE_PICTURE_ISLAND   31                                       // Foto an der Wand: Insel
+#define TILE_PICTURE_CITY     32                                       // Foto an der Wand: Stadt
+#define TILE_NPC_CAPTAIN      33                                       // Startplatz des Kapitaens
+#define TILE_NPC_DRIVER       34                                       // Startplatz des Busfahrers
+#define TILE_GATE             35                                       // Hecke, oeffnet sich nach dem ersten Foto
 
 #define MOVE_FREE             255                                      // Rueckgabe: Bewegung moeglich
 #define MOVE_BLOCKED_NPC      254                                      // Rueckgabe: Figur steht im Weg
@@ -76,7 +103,12 @@
 #define ITEM_NONE             0
 #define ITEM_KEY              1
 #define ITEM_CAMERA           2
-#define ITEM_PHOTO            3
+#define ITEM_PHOTO            3                                        // Foto: Sonne, Baum und Haus
+#define ITEM_PHOTO_BRIDGE     4                                        // Foto: Bruecke
+#define ITEM_PHOTO_ISLAND     5                                        // Foto: Insel
+#define ITEM_PHOTO_CITY       6                                        // Foto: Stadt
+#define ITEM_BOAT_TICKET      7                                        // Ticket fuer die Rundfahrt
+#define ITEM_BUS_TICKET       8                                        // Ticket fuer den Bus
 #define BACKPACK_PLACES_COUNT 6
 
 // ========================================================================================
@@ -84,12 +116,16 @@
 
 #define QUEST_START           0                                        // Surie noch nicht getroffen
 #define QUEST_TALKED          1                                        // Auftrag von Surie erhalten
-#define QUEST_DONE            2                                        // Foto abgegeben, Spiel geschafft
+#define QUEST_MORE_PHOTOS     2                                        // erstes Foto abgegeben, drei weitere gesucht
+#define QUEST_PHOTOS_GIVEN    3                                        // alle Fotos abgegeben, Surie ist zu Hause
+#define QUEST_COFFEE          4                                        // Kaffee mit Surie getrunken, Spiel geschafft
 
 #define START_COINS           25                                       // Muenzen zu Spielbeginn
 #define CHEST_COINS           75                                       // Muenzen in der Kiste
 #define FLOOR_COINS           25                                       // Muenzen je aufgesammelter Muenze
-#define PHOTO_REWARD          150                                      // Belohnung fuer das Foto
+#define PHOTO_REWARD          150                                      // Belohnung fuer das erste Foto
+#define BOAT_TICKET_PRICE     60                                       // Ticket fuer die Rundfahrt
+#define BUS_TICKET_PRICE      40                                       // Ticket fuer den Bus
 
 // ========================================================================================
 // Fenster (Dialoge)
@@ -108,7 +144,20 @@
 #define OPT_BYE               6
 #define OPT_TAKE_PHOTO        7
 #define OPT_NOT_NOW           8
+#define OPT_GIVE_PHOTOS       9
+#define OPT_BUY_BOAT_TICKET   10
+#define OPT_BUY_BUS_TICKET    11
+#define OPT_TRAVEL            12
+#define OPT_DRINK_COFFEE      13
 #define WINDOW_MAX_OPTIONS    4
+
+// ========================================================================================
+// Figuren (Kachel Typ des Startplatzes = Figur Typ)
+
+#define NPC_NONE              0
+#define NPC_SURIE             TILE_NPC
+#define NPC_CAPTAIN           TILE_NPC_CAPTAIN
+#define NPC_DRIVER            TILE_NPC_DRIVER
 
 // ========================================================================================
 // Figur
@@ -130,9 +179,12 @@ byte mTileConsumed[MAP_COUNT][8];                                      // je Kac
 byte mBumpLatch = MOVE_FREE;                                           // verhindert, dass ein Anstossen mehrfach ausloest
 byte mTriggerLatch = NO_TILE;                                          // verhindert, dass ein Betreten mehrfach ausloest
 
-bool mNpcActive = false;                                               // steht Surie auf der aktuellen Karte
-int mNpcX = 0;                                                         // Position X von Surie
-int mNpcY = 0;                                                         // Position Y von Surie
+byte mScene = SCENE_MAP;                                               // was gerade gezeichnet wird
+
+bool mNpcActive = false;                                               // steht eine Figur auf der aktuellen Karte
+byte mNpcType = NPC_NONE;                                              // welche Figur (Surie, Kapitaen, Busfahrer)
+int mNpcX = 0;                                                         // Position X der Figur
+int mNpcY = 0;                                                         // Position Y der Figur
 
 byte mQuestState = QUEST_START;                                        // Fortschritt im Spiel
 int16_t mCoins = START_COINS;                                          // Muenzen im Besitz
@@ -148,7 +200,10 @@ byte mWindowOptions[WINDOW_MAX_OPTIONS];                               // Auswah
 byte mWindowOptionCount = 0;                                           // Anzahl der Auswahl Moeglichkeiten
 byte mWindowChoice = 0;                                                // ausgewaehlte Moeglichkeit
 bool mWindowNeedsDraw = false;                                         // Fenster muss gezeichnet werden
-bool mWindowShowEndNext = false;                                       // nach dem Schliessen das Abschluss Fenster zeigen
+byte mWindowFollowType = WIN_NONE;                                     // Fenster, das nach dem Schliessen folgt
+const char* mWindowFollowTitle = NULL;                                 // Titel des folgenden Fensters
+const char* mWindowFollowText = NULL;                                  // Text des folgenden Fensters
+bool mMapNeedsReload = false;                                          // nach dem Fenster die Karte neu laden
 
 // ========================================================================================
 // Eingaben
@@ -228,7 +283,9 @@ void resetGame() {
   mFacingY = 1;
   mIsWalking = false;
   mWindowType = WIN_NONE;
-  mWindowShowEndNext = false;
+  mWindowFollowType = WIN_NONE;
+  mMapNeedsReload = false;
+  mScene = SCENE_MAP;
   figureStand();
 
   loadMap(MAP_HOUSE, 16, 16);

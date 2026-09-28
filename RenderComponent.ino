@@ -39,9 +39,16 @@ const PROGMEM uint16_t mPalette[] = {
   0xA145,                                                              // 22 ziegel rot
   0x6180,                                                              // 23 holz dunkel
   0xFFFF,                                                              // 24 weiss
+  0x3D1D,                                                              // 25 wasser blau
+  0x2B38,                                                              // 26 wasser dunkel
+  0xEF12,                                                              // 27 sand
+  0x6B4D,                                                              // 28 asphalt
+  0xAEDF,                                                              // 29 himmel blau
+  0xCE0C,                                                              // 30 sand dunkel
 };
 
-#define PALETTE_COUNT 25
+#define PALETTE_COUNT 31
+#define PACKED_PALETTE_SIZE 16                                         // Farbtabelle am Anfang gepackter Bilder
 
 char mValuePrint[7];                                                   // Wird fuer die Zeichenausgabe
                                                                        // von integer Werten verwendet.
@@ -70,6 +77,10 @@ uint16_t colorOf(byte c) {
 // ----------------------------------------------------------------------------------------
 // x, y = Bildschirm Position innerhalb der Karte
 uint16_t composePixel(int x, int y) {
+
+  if(mScene != SCENE_MAP) {                                            // Animation (Seekarte oder Bus)
+    return colorOf(getScenePixel(x, y));
+  }
 
   byte c;
 
@@ -128,6 +139,36 @@ void drawIcon(int x, int y, byte width, byte height, const byte* icon, byte back
   int count = width * height;
   for(int index = 0; index < count; index++) {
     byte c = pgm_read_byte(icon + index);
+    EsploraTFT.pushColor(colorOf(c == 0 ? backgroundColor : c));
+  }
+}
+
+// ========================================================================================
+// Liest einen Pixel aus einem gepackten Bild (16 Byte Farbtabelle, dann 4 Bit je Pixel).
+// ----------------------------------------------------------------------------------------
+// sprite = gepacktes Bild im Flash Speicher
+// index  = Pixel Index (Zeile * Breite + Spalte)
+byte getPackedPixel(const byte* sprite, uint16_t index) {
+
+  byte data = pgm_read_byte(sprite + PACKED_PALETTE_SIZE + (index >> 1));
+  byte nibble = (index & 1) ? (data & 0x0F) : (data >> 4);
+  return pgm_read_byte(sprite + nibble);
+}
+
+// ========================================================================================
+// Zeichnet ein gepacktes Bild direkt aus dem Flash Speicher.
+// ----------------------------------------------------------------------------------------
+// x, y            = Anfangsposition
+// width, height   = Groesse des Bildes
+// sprite          = gepacktes Bild im Flash Speicher
+// backgroundColor = Farbnummer fuer durchsichtige Pixel
+void drawPackedIcon(int x, int y, byte width, byte height, const byte* sprite, byte backgroundColor) {
+
+  EsploraTFT.setAddrWindow(x, y, x + width - 1, y + height - 1);
+
+  uint16_t count = width * height;
+  for(uint16_t index = 0; index < count; index++) {
+    byte c = getPackedPixel(sprite, index);
     EsploraTFT.pushColor(colorOf(c == 0 ? backgroundColor : c));
   }
 }

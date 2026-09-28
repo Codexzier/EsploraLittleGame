@@ -86,7 +86,7 @@ def main():
     with open(game, 'w') as f:
         f.write('#include "%s"\n' % os.path.join(HERE, 'esplora_mock.h'))
         f.write('const unsigned char font[] = {%s};\n' % find_font(sys.argv[1]))
-        f.write('MockTFT EsploraTFT;\nMockEsplora Esplora;\nunsigned long gSimMillis = 0;\n')
+        f.write('MockTFT EsploraTFT;\nMockEsplora Esplora;\nunsigned long gSimMillis = 0;\nvoid (*gOnDelay)() = NULL;\n')
         f.write('\n'.join(prototypes(code)) + '\n')
         f.write(code)
         f.write('\n#include "%s"\n' % os.path.join(HERE, 'scenario.cpp'))

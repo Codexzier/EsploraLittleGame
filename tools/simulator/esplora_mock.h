@@ -27,7 +27,9 @@ template <typename A, typename B> static inline A max(A a, B b) { return a > b ?
 static inline char* itoa(int value, char* buffer, int) { sprintf(buffer, "%d", value); return buffer; }
 
 extern unsigned long gSimMillis;
+extern void (*gOnDelay)();                                             // wird bei jedem delay() aufgerufen (Bildschirmfotos waehrend Animationen)
 static inline unsigned long millis() { return gSimMillis; }
+static inline void delay(unsigned long ms) { gSimMillis += ms; if(gOnDelay) { gOnDelay(); } }
 
 // ----------------------------------------------------------------------------------------
 // Display

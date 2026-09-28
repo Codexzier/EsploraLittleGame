@@ -2,9 +2,9 @@
 // Description:       Rendert den Inhalt der Karte
 //                    Die Figur kann sich auf diesen festgelegten Karte frei bewegen.
 // ----------------------------------------------------------------------------------------
-// Jede Kachel hat eine Textur. 8x8 Muster werden auf die 16x16 Kachel wiederholt.
-// Durchsichtige Pixel (0) zeigen den Boden der Karte (Haus: Fliesen, Garten: Gras).
-// Die Texturen werden mit tools/sprites.py aus einer Zeichen Grafik erzeugt.
+// Jede Kachel hat eine Textur (AssetsData.ino). 8x8 Muster werden auf die 16x16 Kachel
+// wiederholt. Durchsichtige Pixel (0) zeigen den Boden der Karte (Haus: Fliesen,
+// Garten: Gras, Hafen: Sand ...), beim Boot und der fernen Insel das Wasser.
 // ========================================================================================
 
 // ========================================================================================
@@ -22,238 +22,79 @@ const PROGMEM byte mMapContent[MAP_COUNT][MAP_TILE_COUNT] = {
   {                                                                    // Karte 1: Garten
     16,16,16,16,16,16,16,16,16,16,                                     // 16 = Hecke
     16, 9,14,11, 9,13,13,13, 9,16,                                     // 9 = Gras, 11 = Baum, 13 = Dach, 14 = Muenze
-    16, 9, 9, 9, 9,12,18,12,14,16,                                     // 12 = Hauswand, 18 = Haustuer
-     8, 9, 9, 9,15,10,10, 9, 9,16,                                     // 8 = Ausgang zum Haus, 10 = Weg, 15 = Fotopunkt
-    16,14,17, 9, 9, 9,10,17,14,16,                                     // 17 = Blumen
+    16, 9, 9, 9, 9,12,18,12,14,16,                                     // 12 = Hauswand, 18 = Haustuer (Suries Haus)
+     8, 9, 9, 9,15,10,10, 9, 9,35,                                     // 8 = Ausgang zum Haus, 10 = Weg, 15 = Fotopunkt
+    16,14,17, 9, 9, 9,10,17,14,16,                                     // 17 = Blumen, 35 = Hecke, spaeter Ausgang zum Fluss
     16,16,16,16,16,16,16,16,16,16,
+  },
+  {                                                                    // Karte 2: Fluss mit Bruecke
+    16,16,16,16,19,19,16,16,16,16,                                     // 19 = Wasser
+    16, 9,17, 9,19,19, 9,11, 9,16,
+    16, 9, 9,15,19,19, 9, 9, 9,16,                                     // 15 = Fotopunkt mit Blick auf die Bruecke
+     8,10,10,10,20,20,10,10,10, 8,                                     // 20 = Bruecke
+    16, 9,11, 9,19,19, 9,17, 9,16,
+    16,16,16,16,19,19,16,16,16,16,
+  },
+  {                                                                    // Karte 3: Hafen
+    16,16,16,16,16,16,16,16,16,16,
+    16,21,21,22,21,21,21,21,21,16,                                     // 21 = Sand, 22 = Palme
+     8,21,21,21,21,21,33,21,21, 8,                                     // 33 = Kapitaen
+    19,19,19,19,20,19,19,19,19,19,                                     // 20 = Steg
+    19,19,19,19,20,23,19,19,19,19,                                     // 23 = Boot
+    19,19,19,19,19,19,19,19,19,19,
+  },
+  {                                                                    // Karte 4: Nachbarinsel
+    19,19,19,19,19,19,19,19,19,19,
+    19,21,22,21,21,19,19,19,19,19,
+    19,21,21,21,15,19,19,19,27,19,                                     // 15 = Fotopunkt, 27 = Insel in der Ferne
+    19,21,33,21,21,20,23,19,19,19,                                     // 33 = Kapitaen, 20 = Steg, 23 = Boot
+    19,19,21,21,21,19,19,19,19,19,
+    19,19,19,19,19,19,19,19,19,19,
+  },
+  {                                                                    // Karte 5: Bushaltestelle
+    16,16,16,16,16,16,16,16,16,16,
+    16, 9,11, 9,17, 9, 9,11, 9,16,
+     8,10,10,10,10,10,10,10,10,16,
+     9, 9, 9, 9,25,34, 9, 9, 9, 9,                                     // 25 = Haltestelle, 34 = Busfahrer
+    24,24,24,24,24,24,24,24,24,24,                                     // 24 = Strasse
+    24,24,24,24,24,24,24,24,24,24,
+  },
+  {                                                                    // Karte 6: Stadtrand
+    13,13,13,13,13,13,13,13,13,13,                                     // 13 = Daecher
+    26,26,26,26,26,26,26,26,26,26,                                     // 26 = Hauswaende der Stadt
+    10,10,10,10,10,15,10,10,10,10,                                     // 15 = Fotopunkt
+    10,25,34,10,10,10,10,10,10,10,                                     // 25 = Haltestelle, 34 = Busfahrer
+    24,24,24,24,24,24,24,24,24,24,
+    24,24,24,24,24,24,24,24,24,24,
+  },
+  {                                                                    // Karte 7: Suries Stube
+     1, 1,29, 1,30, 1,31, 1,32, 1,                                     // 29 bis 32 = Fotos an der Wand
+     1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0,28, 0, 6, 0, 0, 0, 1,                                     // 28 = Tisch mit Kaffee, 6 = Surie
+     1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+     1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+     1, 1, 1, 1, 8, 1, 1, 1, 1, 1,                                     // 8 = Ausgang zum Garten
   }
 };
 
-const PROGMEM byte mMapGround[MAP_COUNT] = { TILE_FLOOR, TILE_GRASS };  // Boden je Karte
+const PROGMEM byte mMapGround[MAP_COUNT] = {                           // Boden je Karte
+  TILE_FLOOR, TILE_GRASS, TILE_GRASS, TILE_SAND, TILE_SAND, TILE_GRASS, TILE_PATH, TILE_FLOOR
+};
 
 // ----------------------------------------------------------------------------------------
 // Ausgaenge: Karte, Kachel Index, Ziel Karte, Ziel Position X, Ziel Position Y
 
-#define MAP_EXIT_COUNT 2
+#define MAP_EXIT_COUNT 9
 const PROGMEM byte mMapExits[MAP_EXIT_COUNT][5] = {
-  { MAP_HOUSE,  39, MAP_GARDEN, 19,  48 },                             // Haus rechts   -> Garten links
-  { MAP_GARDEN, 30, MAP_HOUSE,  131, 48 },                             // Garten links  -> Haus rechts
-};
-
-// ========================================================================================
-// Kachel Texturen 8x8 (werden wiederholt)
-
-const PROGMEM byte mTileFloor[64] = {
-  15,15,15,15,15,15,15,8,
-  15,15,15,15,15,15,15,8,
-  15,15,15,15,15,15,15,8,
-  8,8,8,8,8,8,8,8,
-  15,15,15,8,15,15,15,15,
-  15,15,15,8,15,15,15,15,
-  15,15,15,8,15,15,15,15,
-  8,8,8,8,8,8,8,8
-};
-
-const PROGMEM byte mTileWall[64] = {
-  10,10,10,10,10,10,10,9,
-  11,10,10,10,10,10,10,9,
-  10,10,10,10,10,10,10,9,
-  9,9,9,9,9,9,9,9,
-  10,10,10,9,10,10,10,10,
-  10,10,10,9,11,10,10,10,
-  10,10,10,9,10,10,10,10,
-  9,9,9,9,9,9,9,9
-};
-
-const PROGMEM byte mTileGrass[64] = {
-  6,6,6,6,6,6,6,6,
-  6,6,7,6,6,6,8,8,
-  6,6,6,6,6,6,6,6,
-  6,6,6,6,8,6,6,6,
-  6,6,6,6,7,6,6,6,
-  6,8,6,6,6,6,6,6,
-  6,6,6,6,6,7,6,6,
-  6,6,6,6,6,6,6,6
-};
-
-const PROGMEM byte mTilePath[64] = {
-  20,20,20,20,20,20,20,20,
-  20,20,4,20,20,20,20,20,
-  20,20,20,20,20,20,4,20,
-  20,20,20,20,20,20,20,20,
-  20,4,20,20,20,20,20,20,
-  20,20,20,20,4,20,20,20,
-  20,20,20,20,20,20,20,20,
-  20,20,20,20,20,20,20,4
-};
-
-const PROGMEM byte mTileHedge[64] = {
-  7,6,7,7,7,6,7,7,
-  6,7,7,8,7,7,7,6,
-  7,7,6,7,7,6,7,7,
-  7,6,7,7,7,7,6,7,
-  7,7,7,6,7,7,8,7,
-  6,7,7,7,6,7,6,7,
-  7,8,6,7,7,7,7,6,
-  7,7,7,7,6,7,7,7
-};
-
-const PROGMEM byte mTileRoof[64] = {
-  14,22,22,22,14,22,22,22,
-  22,22,22,22,22,22,22,22,
-  22,22,22,22,22,22,22,22,
-  17,17,17,17,17,17,17,17,
-  22,22,14,22,22,22,22,14,
-  22,22,22,22,22,22,22,22,
-  22,22,22,22,22,22,22,22,
-  17,17,17,17,17,17,17,17
-};
-
-const PROGMEM byte mTileFlowers[64] = {
-  0,0,0,0,0,0,0,0,
-  0,0,16,0,0,0,0,0,
-  0,16,12,16,0,0,0,0,
-  0,0,16,0,0,24,0,0,
-  0,0,7,0,24,12,24,0,
-  0,0,0,0,0,24,0,0,
-  0,0,0,0,0,7,0,0,
-  0,0,0,0,0,0,0,0
-};
-
-// ========================================================================================
-// Kachel Texturen 16x16
-
-const PROGMEM byte mTileDoor[256] = {
-  17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,12,12,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,12,1,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,12,1,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,12,12,4,13,17,
-  17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,13,13,4,13,13,13,13,4,13,13,13,13,4,13,17,
-  17,17,17,17,17,17,17,17,17,17,17,17,17,17,17,17
-};
-
-const PROGMEM byte mTileChest[256] = {
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0,
-  0,1,4,4,4,4,4,4,4,4,4,4,4,4,1,0,
-  0,1,4,13,13,13,13,13,13,13,13,13,13,4,1,0,
-  0,1,4,13,13,13,13,13,13,13,13,13,13,4,1,0,
-  0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
-  0,1,18,4,4,4,4,12,12,4,4,4,4,18,1,0,
-  0,1,18,13,13,13,13,12,1,13,13,13,13,18,1,0,
-  0,1,18,13,13,13,13,12,12,13,13,13,13,18,1,0,
-  0,1,18,13,13,13,13,13,13,13,13,13,13,18,1,0,
-  0,1,18,13,13,13,13,13,13,13,13,13,13,18,1,0,
-  0,1,18,4,4,4,4,4,4,4,4,4,4,18,1,0,
-  0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-};
-
-const PROGMEM byte mTileExit[256] = {
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,22,22,22,22,22,22,22,22,22,22,22,22,0,0,
-  0,0,22,12,12,12,12,12,12,12,12,12,12,22,0,0,
-  0,0,22,12,22,22,22,22,22,22,22,22,12,22,0,0,
-  0,0,22,12,22,12,12,12,12,12,12,22,12,22,0,0,
-  0,0,22,12,22,22,22,22,22,22,22,22,12,22,0,0,
-  0,0,22,12,22,12,12,12,12,12,12,22,12,22,0,0,
-  0,0,22,12,22,22,22,22,22,22,22,22,12,22,0,0,
-  0,0,22,12,22,12,12,12,12,12,12,22,12,22,0,0,
-  0,0,22,12,22,22,22,22,22,22,22,22,12,22,0,0,
-  0,0,22,12,22,12,12,12,12,12,12,22,12,22,0,0,
-  0,0,22,12,22,22,22,22,22,22,22,22,12,22,0,0,
-  0,0,22,12,12,12,12,12,12,12,12,12,12,22,0,0,
-  0,0,22,22,22,22,22,22,22,22,22,22,22,22,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-};
-
-const PROGMEM byte mTileTree[256] = {
-  0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,
-  0,0,0,1,1,6,6,6,8,8,6,1,1,0,0,0,
-  0,0,1,6,6,6,6,8,8,8,6,6,7,1,0,0,
-  0,1,6,6,7,6,6,6,8,8,6,6,6,7,1,0,
-  0,1,6,6,6,6,6,6,6,6,6,7,6,7,1,0,
-  1,6,6,7,6,6,6,6,7,6,6,6,6,6,7,1,
-  1,6,6,6,6,6,7,6,6,6,6,6,7,6,7,1,
-  1,7,6,6,6,6,6,6,6,6,7,6,6,6,7,1,
-  0,1,7,6,7,6,6,6,7,6,6,6,7,7,1,0,
-  0,1,7,7,6,6,7,6,6,6,7,7,7,7,1,0,
-  0,0,1,1,7,7,7,7,7,7,7,7,1,1,0,0,
-  0,0,0,0,1,1,1,17,3,1,1,1,0,0,0,0,
-  0,0,0,0,0,0,1,17,3,1,0,0,0,0,0,0,
-  0,0,0,0,0,0,1,17,3,1,0,0,0,0,0,0,
-  0,0,0,0,0,1,17,3,3,17,1,0,0,0,0,0,
-  0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0
-};
-
-const PROGMEM byte mTileHouseWall[256] = {
-  18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,1,1,1,1,1,1,1,1,19,19,19,19,
-  19,19,19,19,1,24,11,11,1,24,11,1,19,19,19,19,
-  19,19,19,19,1,11,11,1,11,11,1,1,19,19,19,19,
-  19,19,19,19,1,1,1,1,1,1,1,1,19,19,19,19,
-  19,19,19,19,1,11,11,1,11,11,11,1,19,19,19,19,
-  19,19,19,19,1,11,11,1,11,11,11,1,19,19,19,19,
-  19,19,19,19,1,1,1,1,1,1,1,1,19,19,19,19,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
-  21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21
-};
-
-const PROGMEM byte mTileHouseDoor[256] = {
-  18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
-  19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,19,
-  19,19,19,19,1,1,1,1,1,1,1,1,19,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,23,23,1,19,19,19,
-  19,19,19,1,23,17,17,23,23,17,17,23,1,19,19,19,
-  19,19,19,1,23,17,17,23,23,17,17,23,1,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,23,23,1,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,23,23,1,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,12,23,1,19,19,19,
-  19,19,19,1,23,17,17,23,23,17,12,23,1,19,19,19,
-  19,19,19,1,23,17,17,23,23,17,17,23,1,19,19,19,
-  19,19,19,1,23,17,17,23,23,17,17,23,1,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,23,23,1,19,19,19,
-  19,19,19,1,23,23,23,23,23,23,23,23,1,19,19,19,
-  18,18,18,1,1,1,1,1,1,1,1,1,1,18,18,18,
-  21,21,21,21,21,21,21,21,21,21,21,21,21,21,21,21
-};
-
-const PROGMEM byte mTilePhotoSpot[256] = {
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,12,12,0,0,0,0,0,0,12,12,0,0,0,
-  0,0,0,12,12,12,0,0,0,0,12,12,12,0,0,0,
-  0,0,0,0,12,12,12,0,0,12,12,12,0,0,0,0,
-  0,0,0,0,0,12,12,12,12,12,12,0,0,0,0,0,
-  0,0,0,0,0,0,12,12,12,12,0,0,0,0,0,0,
-  0,0,0,0,0,0,12,12,12,12,0,0,0,0,0,0,
-  0,0,0,0,0,12,12,12,12,12,12,0,0,0,0,0,
-  0,0,0,0,12,12,12,0,0,12,12,12,0,0,0,0,
-  0,0,0,12,12,12,0,0,0,0,12,12,12,0,0,0,
-  0,0,0,12,12,0,0,0,0,0,0,12,12,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+  { MAP_HOUSE,       39, MAP_GARDEN,   19,  48 },                      // Haus rechts      -> Garten links
+  { MAP_GARDEN,      30, MAP_HOUSE,    131, 48 },                      // Garten links     -> Haus rechts
+  { MAP_GARDEN,      39, MAP_RIVER,    19,  48 },                      // Garten rechts    -> Fluss links
+  { MAP_RIVER,       30, MAP_GARDEN,   131, 48 },                      // Fluss links      -> Garten rechts
+  { MAP_RIVER,       39, MAP_HARBOR,   19,  32 },                      // Fluss rechts     -> Hafen links
+  { MAP_HARBOR,      20, MAP_RIVER,    131, 48 },                      // Hafen links      -> Fluss rechts
+  { MAP_HARBOR,      29, MAP_BUS_STOP, 19,  32 },                      // Hafen rechts     -> Haltestelle links
+  { MAP_BUS_STOP,    20, MAP_HARBOR,   131, 32 },                      // Haltestelle links -> Hafen rechts
+  { MAP_LIVING_ROOM, 54, MAP_GARDEN,   99,  48 },                      // Stube unten      -> vor Suries Haus
 };
 
 // ========================================================================================
@@ -272,11 +113,15 @@ void loadMap(byte mapId, int positionX, int positionY) {
   mPosX = positionX;
   mPosY = positionY;
   mBumpLatch = MOVE_FREE;
+  mScene = SCENE_MAP;
 
   mNpcActive = false;                                                  // Figuren auf der Karte suchen
+  mNpcType = NPC_NONE;
   for(byte index = 0; index < MAP_TILE_COUNT; index++) {
-    if(getTile(index) == TILE_NPC) {
+    byte tile = getTile(index);
+    if(tile == TILE_NPC || tile == TILE_NPC_CAPTAIN || tile == TILE_NPC_DRIVER) {
       mNpcActive = true;
+      mNpcType = tile;
       mNpcX = (index % MAP_TILE_COUNT_X) * MAP_TILE_SIZE + (MAP_TILE_SIZE - FIGURE_WIDTH) / 2;
       mNpcY = (index / MAP_TILE_COUNT_X) * MAP_TILE_SIZE;
     }
@@ -287,6 +132,12 @@ void loadMap(byte mapId, int positionX, int positionY) {
   mTriggerLatch = (footY / MAP_TILE_SIZE) * MAP_TILE_COUNT_X + (footX / MAP_TILE_SIZE);
 
   renderArea(0, 0, MAP_WIDTH, MAP_HEIGHT);                              // gesammte Karte zeichnen
+}
+
+// ========================================================================================
+// Laedt die aktuelle Karte neu, z.B. wenn eine Figur die Karte verlassen hat.
+void reloadMap() {
+  loadMap(mCurrentMap, mPosX, mPosY);
 }
 
 // ========================================================================================
@@ -322,10 +173,25 @@ byte getTile(byte index) {
 
   if(isTileConsumed(index) &&
      (tile == TILE_KEY || tile == TILE_DOOR || tile == TILE_COIN)) {
-    return pgm_read_byte(&mMapGround[mCurrentMap]);
+    return getGround();
+  }
+
+  if(tile == TILE_GATE) {                                              // Hecke oeffnet sich fuer den zweiten Auftrag
+    return mQuestState >= QUEST_MORE_PHOTOS ? TILE_EXIT : TILE_HEDGE;
+  }
+
+  if(tile == TILE_NPC && mCurrentMap == MAP_HOUSE &&                   // Surie ist nach Hause gegangen
+     mQuestState >= QUEST_PHOTOS_GIVEN) {
+    return getGround();
   }
 
   return tile;
+}
+
+// ========================================================================================
+// Boden der aktuellen Karte.
+byte getGround() {
+  return pgm_read_byte(&mMapGround[mCurrentMap]);
 }
 
 // ========================================================================================
@@ -354,8 +220,9 @@ byte getTilePixel(int x, int y) {
   byte py = y & 15;
   byte color = getTileTexturePixel(tile, px, py);
 
-  if(color == 0) {                                                     // durchsichtig: Boden der Karte
-    color = getTileTexturePixel(pgm_read_byte(&mMapGround[mCurrentMap]), px, py);
+  if(color == 0) {                                                     // durchsichtig: darunter liegende Kachel
+    byte under = (tile == TILE_BOAT || tile == TILE_FAR_ISLAND) ? TILE_WATER : getGround();
+    color = getTileTexturePixel(under, px, py);
   }
 
   return color;
@@ -369,31 +236,44 @@ byte getTilePixel(int x, int y) {
 byte getTileTexturePixel(byte tile, byte px, byte py) {
 
   byte index8 = (py & 7) * 8 + (px & 7);                               // Index fuer 8x8 Muster
-  byte index16 = py * 16 + px;                                         // Index fuer 16x16 Kacheln
+  uint16_t index16 = py * 16 + px;                                     // Index fuer 16x16 Kacheln
 
   switch(tile) {
-    case(TILE_WALL):       { return pgm_read_byte(mTileWall + index8); }
-    case(TILE_GRASS):      { return pgm_read_byte(mTileGrass + index8); }
-    case(TILE_PATH):       { return pgm_read_byte(mTilePath + index8); }
-    case(TILE_HEDGE):      { return pgm_read_byte(mTileHedge + index8); }
-    case(TILE_ROOF):       { return pgm_read_byte(mTileRoof + index8); }
-    case(TILE_FLOWERS):    { return pgm_read_byte(mTileFlowers + index8); }
-    case(TILE_KEY):        { return pgm_read_byte(mItemKey01Icon + index16); }
-    case(TILE_DOOR):       { return pgm_read_byte(mTileDoor + index16); }
-    case(TILE_CHEST):      { return pgm_read_byte(mTileChest + index16); }
-    case(TILE_EXIT):       { return pgm_read_byte(mTileExit + index16); }
-    case(TILE_TREE):       { return pgm_read_byte(mTileTree + index16); }
-    case(TILE_HOUSE_WALL): { return pgm_read_byte(mTileHouseWall + index16); }
-    case(TILE_HOUSE_DOOR): { return pgm_read_byte(mTileHouseDoor + index16); }
-    case(TILE_PHOTO_SPOT): { return pgm_read_byte(mTilePhotoSpot + index16); }
+    case(TILE_FLOOR):          { return pgm_read_byte(mTileFloor + index8); }
+    case(TILE_WALL):           { return pgm_read_byte(mTileWall + index8); }
+    case(TILE_GRASS):          { return pgm_read_byte(mTileGrass + index8); }
+    case(TILE_PATH):           { return pgm_read_byte(mTilePath + index8); }
+    case(TILE_HEDGE):          { return pgm_read_byte(mTileHedge + index8); }
+    case(TILE_ROOF):           { return pgm_read_byte(mTileRoof + index8); }
+    case(TILE_FLOWERS):        { return pgm_read_byte(mTileFlowers + index8); }
+    case(TILE_WATER):          { return pgm_read_byte(mTileWater + index8); }
+    case(TILE_BRIDGE):         { return pgm_read_byte(mTileBridge + index8); }
+    case(TILE_SAND):           { return pgm_read_byte(mTileSand + index8); }
+    case(TILE_ROAD):           { return pgm_read_byte(mTileRoad + index8); }
+    case(TILE_FACADE):         { return pgm_read_byte(mTileFacade + index8); }
+    case(TILE_KEY):            { return getPackedPixel(mItemKey01Icon, index16); }
+    case(TILE_DOOR):           { return getPackedPixel(mTileDoor, index16); }
+    case(TILE_CHEST):          { return getPackedPixel(mTileChest, index16); }
+    case(TILE_EXIT):           { return getPackedPixel(mTileExit, index16); }
+    case(TILE_TREE):           { return getPackedPixel(mTileTree, index16); }
+    case(TILE_HOUSE_WALL):     { return getPackedPixel(mTileHouseWall, index16); }
+    case(TILE_HOUSE_DOOR):     { return getPackedPixel(mTileHouseDoor, index16); }
+    case(TILE_PHOTO_SPOT):     { return getPackedPixel(mTilePhotoSpot, index16); }
+    case(TILE_PALM):           { return getPackedPixel(mTilePalm, index16); }
+    case(TILE_BOAT):           { return getPackedPixel(mTileBoat, index16); }
+    case(TILE_BUS_SIGN):       { return getPackedPixel(mTileBusSign, index16); }
+    case(TILE_FAR_ISLAND):     { return getPackedPixel(mTileFarIsland, index16); }
+    case(TILE_TABLE):          { return getPackedPixel(mTileTable, index16); }
+    case(TILE_PICTURE_GARDEN): { return getPackedPixel(mItemPhoto01Icon, index16); }
+    case(TILE_PICTURE_BRIDGE): { return getPackedPixel(mItemPhotoBridgeIcon, index16); }
+    case(TILE_PICTURE_ISLAND): { return getPackedPixel(mItemPhotoIslandIcon, index16); }
+    case(TILE_PICTURE_CITY):   { return getPackedPixel(mItemPhotoCityIcon, index16); }
     case(TILE_COIN): {                                                 // Muenze 7x7 in der Mitte
       if(px >= 4 && px < 11 && py >= 4 && py < 11) {
         return pgm_read_byte(mCoinSpiteIcon + (py - 4) * 7 + (px - 4));
       }
       return 0;
     }
-    case(TILE_FLOOR):
-    case(TILE_NPC): { return pgm_read_byte(mTileFloor + index8); }     // Boden, Surie wird extra gezeichnet
-    default: { return 0; }
+    default: { return 0; }                                             // Figuren Startplaetze: Boden
   }
 }
