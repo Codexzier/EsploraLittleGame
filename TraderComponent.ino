@@ -8,19 +8,19 @@
 // ========================================================================================
 // Common Text
 
-const PROGMEM char mTraderIntroText[] = "Hallo, ich bin Surie! Ich wuensche mir ein Foto von Baum und Haus im Garten. Eine Kamera verkaufe ich dir fuer 200 Muenzen.";
+const PROGMEM char mTraderIntroText[] = "Hallo, ich bin Surie! Bring mir ein Foto von Baum und Haus im Garten. Eine Kamera kostet 200 Muenzen.";
 const PROGMEM char mTraderStartText[] = "Hallo, was darf ich dir verkaufen?";      // Begruessungstext
 const PROGMEM char mTraderWaitingText[] = "Bruecke, Insel und Stadt - hast du die Fotos schon?";
 const PROGMEM char mTraderNotEnough[] = "Du hast nicht genug Muenzen.";            // Wenn zu wenig Muenzen zum Kaufen da sind
 const PROGMEM char mTraderBoughtText[] = "Danke! Viel Spass mit der Kamera.";
 const PROGMEM char mTraderTicketText[] = "Hier ist dein Ticket. Gute Fahrt!";
 const PROGMEM char mTraderSoldText[] = "Danke, ich nehme sie gerne zurueck.";
-const PROGMEM char mTraderPhotoText[] = "Wunderschoen! Genau so habe ich es mir vorgestellt. Hier sind 150 Muenzen fuer dich!";
-const PROGMEM char mTraderMorePhotosText[] = "Ich haette so gern noch drei Fotos: eine Bruecke, eine Insel und eine Stadt. Hinter dem Garten geht es weiter!";
+const PROGMEM char mTraderPhotoText[] = "Wunderschoen! Genau so wollte ich es. Hier sind 150 Muenzen fuer dich!";
+const PROGMEM char mTraderMorePhotosText[] = "Ich wuensche mir noch drei Fotos: Bruecke, Insel und Stadt. Hinter dem Garten geht es weiter!";
 const PROGMEM char mTraderAllPhotosText[] = "Oh, sind die schoen! Damit schmuecke ich die Waende in meinem Haus.";
 const PROGMEM char mTraderInviteText[] = "Besuch mich doch in meinem Haus im Garten. Ich koche uns einen Kaffee!";
 const PROGMEM char mTraderHomeText[] = "Schau, deine Fotos haengen an der Wand! Magst du einen Kaffee?";
-const PROGMEM char mTraderCoffeeText[] = "Mmh, der Kaffee ist lecker! Ihr erzaehlt euch von der Bruecke, der Insel und der Stadt.";
+const PROGMEM char mTraderCoffeeText[] = "Mmh, lecker! Ihr erzaehlt von der Bruecke, der Insel und der Stadt.";
 const PROGMEM char mTraderAfterCoffeeText[] = "Schoen, dass du mich besucht hast!";
 
 // ========================================================================================
@@ -34,8 +34,7 @@ const PROGMEM char mTraderAfterCoffeeText[] = "Schoen, dass du mich besucht hast
 const PROGMEM char mTrader01Name[] = "Surie";
 // Kurze Beschreibung
 const PROGMEM char mTrader01Description[] = "Verkaeuferin";
-// Dinge zum verkauf
-const PROGMEM byte mTrader01Items[4] = { ITEM_CAMERA, 0, 0, 0 };
+// Dinge zum verkauf: Kamera
 // Farben: Haare 1, Haare 2, T-Shirt 1, T-Shirt 2, Hose 1, Hose 2 (Farbnummer 100 bis 105)
 const PROGMEM uint16_t mTrader01Colors[6] = { 0xEEEC, 0xE662, 0xD69A, 0xB596, 0x0418, 0x0312 };
 
@@ -159,10 +158,8 @@ void openTraderWindow() {
     addWindowOption(OPT_GIVE_PHOTOS);
   }
 
-  for(byte i = 0; i < 4; i++) {                                        // Dinge zum Verkauf anbieten
-    if(pgm_read_byte(&mTrader01Items[i]) == ITEM_CAMERA && !hasItem(ITEM_CAMERA)) {
-      addWindowOption(OPT_BUY_CAMERA);
-    }
+  if(!hasItem(ITEM_CAMERA)) {                                          // Kamera zum Verkauf anbieten
+    addWindowOption(OPT_BUY_CAMERA);
   }
 
   if(hasItem(ITEM_CAMERA) && mQuestState >= QUEST_PHOTOS_GIVEN) {      // erst nach allen Fotos, sonst fehlen Muenzen
@@ -281,7 +278,7 @@ void drawCoinsStatus(bool redraw) {
 
   if(mCoins != mLastStateCoins || redraw) {
     EsploraTFT.fillRect(51, HUD_POS_Y + 1, MAP_WIDTH - 51, 9, colorOf(1));
-    drawIcon(51, HUD_POS_Y + 2, 7, 7, mCoinSpiteIcon, 1);
+    drawPackedIcon(51, HUD_POS_Y + 2, 7, 7, mCoinSpiteIcon, 1);
     drawNumber(61, HUD_POS_Y + 2, mCoins, colorOf(12));
     mLastStateCoins = mCoins;
   }

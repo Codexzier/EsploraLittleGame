@@ -1,7 +1,7 @@
 // ========================================================================================
 //      Meine Welt in meinem Kopf
 // ========================================================================================
-// Projekt:       Arduino Esplora - Suries Fotos (Teil 11)
+// Projekt:       Arduino Esplora - Photo Quest (Teil 12)
 // Author:        Johannes P. Langner
 // Controller:    Arduino Esplora
 // Sensors:       Joystick, Buttons
@@ -17,6 +17,7 @@
 #include <TFT.h>
 #include <Esplora.h>
 #include <avr/pgmspace.h>
+#include <avr/eeprom.h>
 
 // ========================================================================================
 // Bildschirm Aufteilung
@@ -134,6 +135,7 @@
 #define WIN_MESSAGE           1                                        // Nachricht ohne Auswahl
 #define WIN_CHOICE            2                                        // Nachricht mit Auswahl
 #define WIN_END               3                                        // Abschluss Fenster
+#define WIN_TITLE             4                                        // Startbildschirm
 
 #define OPT_NONE              0
 #define OPT_OPEN_CHEST        1
@@ -149,6 +151,8 @@
 #define OPT_BUY_BUS_TICKET    11
 #define OPT_TRAVEL            12
 #define OPT_DRINK_COFFEE      13
+#define OPT_NEW_GAME          14
+#define OPT_LOAD_GAME         15
 #define WINDOW_MAX_OPTIONS    4
 
 // ========================================================================================
@@ -204,6 +208,8 @@ byte mWindowFollowType = WIN_NONE;                                     // Fenste
 const char* mWindowFollowTitle = NULL;                                 // Titel des folgenden Fensters
 const char* mWindowFollowText = NULL;                                  // Text des folgenden Fensters
 bool mMapNeedsReload = false;                                          // nach dem Fenster die Karte neu laden
+bool mWindowWaitRelease = false;                                       // erst navigieren, wenn der Stick losgelassen wurde
+int mWindowOptionsY = 0;                                               // Position der Auswahl im Fenster
 
 // ========================================================================================
 // Eingaben
@@ -226,7 +232,7 @@ void setup() {
   EsploraTFT.setRotation(1);                                           // festlegen der Bildschirm ausrichtung
   EsploraTFT.background(0, 0, 0);                                      // Hintergrund komplett schwarz einfaerben
 
-  resetGame();
+  showTitle();                                                         // Startbildschirm: neues Spiel oder laden
 }
 
 // ========================================================================================
@@ -235,7 +241,7 @@ void loop() {
   unsigned long now = millis();
   updateButtons();
 
-  if(handleResetButton(now)) {                                         // Button 1 gehalten: Neustart
+  if(handleResetButton(now)) {                                         // Button 1 gehalten: zum Startbildschirm
     return;
   }
 
@@ -383,7 +389,7 @@ bool buttonPressed(byte sw) {
 }
 
 // ========================================================================================
-// Button 1 fuer eine Sekunde halten setzt das Spiel zurueck.
+// Button 1 fuer eine Sekunde halten fuehrt zum Startbildschirm.
 // Das verhindert ein versehentliches Zuruecksetzen.
 bool handleResetButton(unsigned long now) {
 
@@ -397,7 +403,8 @@ bool handleResetButton(unsigned long now) {
   }
   else if(now - mResetPressedSince > RESET_HOLD_TIME) {
     mResetPressedSince = 0;
-    resetGame();
+    mScene = SCENE_MAP;
+    showTitle();
     return true;
   }
 

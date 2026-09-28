@@ -3,9 +3,8 @@
 # Description:       Hilfsskript um Kacheln / Sprites als lesbare Zeichen-Grafik zu pflegen.
 #                    Erzeugt die Datei AssetsData.ino mit allen PROGMEM Arrays.
 #
-# Formate:           8x8 Muster        1 Byte je Pixel (Farbnummer)
-#                    alle anderen      gepackt: 16 Byte Farbtabelle + 4 Bit je Pixel
-#                                      (spart fast die Haelfte Flash Speicher)
+# Format:            gepackt: 16 Byte Farbtabelle + 4 Bit je Pixel
+#                    (spart fast die Haelfte Flash Speicher)
 #
 # Aufruf:            python3 tools/sprites.py
 # ========================================================================================
@@ -580,6 +579,17 @@ SPRITES['mItemBusTicketIcon'] = [
     "................",
 ]
 
+# Muenze (7x7, Rucksack Bereich und Karte)
+SPRITES['mCoinSpiteIcon'] = [
+    ".rYYYy.",
+    "rYYYYYy",
+    "rYYYYYy",
+    "rYYYYYy",
+    "rYYYYYy",
+    "rYYYYYy",
+    ".rYYYy.",
+]
+
 # ----------------------------------------------------------------------------------------
 # Schiff fuer die Seekarte (12x10)
 
@@ -790,12 +800,6 @@ def format_bytes(values, per_line):
     return '\n'.join(lines)
 
 
-def raw_array(name, rows):
-    width, height = check(name, rows)
-    values = [PALETTE_CHARS[c] for r in rows for c in r]
-    return 'const PROGMEM byte %s[%d] = {                // %dx%d, 1 Byte je Pixel\n%s\n};' % (
-        name, len(values), width, height, format_bytes(values, width))
-
 
 def packed_array(name, rows):
     width, height = check(name, rows)
@@ -821,8 +825,8 @@ HEADER = '''// =================================================================
 //                    DIESE DATEI WIRD ERZEUGT: python3 tools/sprites.py
 //                    Aenderungen bitte in tools/sprites.py vornehmen.
 // ----------------------------------------------------------------------------------------
-// 8x8 Muster:        1 Byte je Pixel (Farbnummer aus mPalette)
-// gepackt:           16 Byte Farbtabelle, danach 4 Bit je Pixel (Index in die Farbtabelle),
+// Format:            16 Byte Farbtabelle (Farbnummern aus mPalette),
+//                    danach 4 Bit je Pixel (Index in die Farbtabelle),
 //                    auslesen mit getPackedPixel()
 // ========================================================================================
 '''
@@ -830,8 +834,7 @@ HEADER = '''// =================================================================
 if __name__ == '__main__':
     parts = [HEADER]
     for name, rows in SPRITES.items():
-        is_pattern = len(rows) == 8 and len(rows[0]) == 8
-        parts.append(raw_array(name, rows) if is_pattern else packed_array(name, rows))
+        parts.append(packed_array(name, rows))
     target = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'AssetsData.ino')
     with open(target, 'w') as f:
         f.write('\n\n'.join(parts) + '\n')

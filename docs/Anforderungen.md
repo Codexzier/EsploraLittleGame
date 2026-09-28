@@ -1,4 +1,4 @@
-# Anforderungsbeschreibung: „Suries Fotos“
+# Anforderungsbeschreibung: „Photo Quest“ (Suries Fotos)
 
 Ausbau des kleinen Adventure-Spiels für den Arduino Esplora mit TFT-Display (160×128). Grundlage sind die vorhandenen Spielmechaniken: Laufen, Kollision, Gegenstände aufheben, Rucksack, Tür mit Schlüssel, Händlerin, Kiste, Münzen und Dialogfenster.
 
@@ -12,8 +12,9 @@ Das Spiel besteht aus zwei Teilen:
 |---|---|
 | R-01 | Zielhardware ist der Arduino Esplora (ATmega32U4, 28 KB Flash für den Sketch, 2,5 KB SRAM) mit dem Arduino TFT-Display 1.8". |
 | R-02 | Verwendet werden nur die Bibliotheken `SPI`, `TFT` und `Esplora`. |
-| R-03 | Der Sketch belegt höchstens 95 % des Flash-Speichers und höchstens 50 % des SRAM für globale Variablen. *(Stand: 94 % Flash, 18 % SRAM)* |
+| R-03 | Der Sketch belegt höchstens 99 % des Flash-Speichers und höchstens 50 % des SRAM für globale Variablen. *(Stand: 98 % Flash, 18 % SRAM)* |
 | R-04 | Grafiken, Karten und Texte liegen im Flash (`PROGMEM`). Im SRAM gibt es keine Bildpuffer. |
+| R-05 | Der Spielstand liegt im EEPROM (1 KB, davon ca. 90 Byte belegt). |
 
 ## 2. Spielidee
 
@@ -45,7 +46,7 @@ Mit allen Fotos kehrt die Figur zu Surie zurück. Surie hängt die Fotos in ihre
 | 13 | (Stadtrand) | – | Häuserreihe mit Dächern deutet die Stadt an |
 | 14 | „Bring Surie die drei Fotos.“ | Surie ansprechen, „Gib Surie die Fotos“ | Surie geht nach Hause und hängt die Fotos an die Wand |
 | 15 | „Besuche Surie in ihrem Haus.“ | Gegen die Haustür im Garten laufen, in der Stube Surie ansprechen, „Kaffee trinken“ | Abschlussfenster |
-| – | „Geschafft! [1] halten = Neu“ | Button 1 eine Sekunde halten | Neues Spiel |
+| – | „Geschafft! [1] halten = Neu“ | Button 1 eine Sekunde halten | Startbildschirm |
 
 **Münzen in Teil 2:** 150 (Belohnung) − 60 (Boot) − 40 (Bus) = 50 bleiben übrig.
 
@@ -64,7 +65,7 @@ Mit allen Fotos kehrt die Figur zu Surie zurück. Surie hängt die Fotos in ihre
 | F-01 | Der Joystick bewegt die Figur in vier Richtungen. Bei schrägem Ausschlag zählt die Achse mit dem größeren Ausschlag. Eine Totzone (`STICK_DEADBAND`) filtert das Rauschen. |
 | F-02 | Die Figur läuft mit gleichmäßiger Geschwindigkeit (1 Pixel alle 16 ms), unabhängig davon, wie lange das Zeichnen dauert. |
 | F-03 | Button 4 (rechts) bestätigt, Button 2 (links) schließt oder geht zurück. In Fenstern wechselt der Joystick hoch/runter die Auswahl mit Wiederholverzögerung. |
-| F-04 | Wird Button 1 (unten) eine Sekunde gehalten, startet das Spiel neu. Kurzes Drücken bewirkt nichts. |
+| F-04 | Wird Button 1 (unten) eine Sekunde gehalten, erscheint der Startbildschirm. Kurzes Drücken bewirkt nichts. |
 
 ### Bewegung und Kollision
 
@@ -127,6 +128,17 @@ Mit allen Fotos kehrt die Figur zu Surie zurück. Surie hängt die Fotos in ihre
 | F-61 | **Bus:** Beim Losfahren zeigt die Szene Himmel, Hügel, Haltestelle und Straße von der Seite. Der Bus fährt ins Bild, hält an der Haltestelle und fährt weiter, auf der Rückfahrt in die andere Richtung. |
 | F-62 | Während einer Animation bleibt der untere Bereich (Rucksack, Münzen, Ziel) sichtbar. Danach erscheint die Zielkarte. |
 
+### Startbildschirm, Spielstand und Effekte
+
+| ID | Anforderung |
+|---|---|
+| F-70 | Nach dem Einschalten erscheint der Startbildschirm mit dem Namen **„Photo Quest“** in doppelter Schriftgröße und einem Filmstreifen mit den vier Fotos. |
+| F-71 | Auswahl „Neues Spiel“ und, nur wenn ein Spielstand gespeichert ist, „Spiel laden“. Mit Spielstand ist „Spiel laden“ vorausgewählt. Joystick hoch/runter wählt, Button 4 bestätigt. Button 2 schließt den Startbildschirm nicht. |
+| F-72 | Der Spielstand wird automatisch im EEPROM gespeichert, bei jedem Kartenwechsel und nach jedem geschlossenen Fenster. Gespeichert werden Karte, Position, Blickrichtung, Fortschritt, Münzen, Rucksack und alle verwendeten Kacheln. `eeprom_update_…` schreibt nur geänderte Bytes und schont so den EEPROM. |
+| F-73 | Eine Kennung (`SAVE_MAGIC`) an Adresse 0 zeigt, ob ein gültiger Spielstand vorhanden ist. Ändert sich der Aufbau, wird die Kennung erhöht, damit alte Spielstände ignoriert werden. |
+| F-74 | **Blitzlicht:** Beim Fotografieren leuchtet die RGB-LED 80 ms weiß. Die drei LED-Pins werden direkt mit `digitalWrite` geschaltet, das spart den Flash-Speicher für `analogWrite`. |
+| F-75 | **Schiffshorn:** Vor der Abfahrt ertönt über `Esplora.tone()` ein kurzer und ein langer tiefer Ton (165 Hz), bei der Ankunft ein kurzer. |
+
 ### Anzeige (HUD)
 
 | ID | Anforderung |
@@ -144,14 +156,14 @@ Mit allen Fotos kehrt die Figur zu Surie zurück. Surie hängt die Fotos in ihre
 | G-04 | Kacheln haben Texturen. 8×8-Muster: Wand, Boden, Gras, Weg, Hecke, Dach, Blumen, Wasser, Brücke, Sand, Straße, Häuserfront. 16×16-Bilder: Tür, Kiste, Ausgang, Baum, Hauswand, Haustür, Schlüssel, Fotopunkt, Palme, Boot, Haltestelle, ferne Insel, Tisch, Fotos. Transparente Pixel zeigen den Boden der Karte, beim Boot und der fernen Insel das Wasser. |
 | G-05 | Alle Farben stammen aus einer zentralen Palette (`mPalette`, 31 Farben). Die Nummern 100–105 sind die veränderbaren Farben einer Figur (Haare, Shirt, Hose). |
 | G-06 | Texturen werden in `tools/sprites.py` als lesbare Zeichengrafik gepflegt. Das Skript erzeugt daraus `AssetsData.ino`. |
-| G-07 | 16×16-Bilder werden **gepackt** gespeichert: 16 Byte Farbtabelle plus 4 Bit je Pixel, also 144 statt 256 Byte. |
+| G-07 | Alle Bilder, auch 8×8-Muster und Figuren, werden **gepackt** gespeichert: 16 Byte Farbtabelle plus 4 Bit je Pixel. Ein 16×16-Bild braucht so 144 statt 256 Byte. |
 | G-08 | Inseln der Seekarte und der Bus werden aus Kreisen und Rechtecken berechnet und brauchen dadurch kaum Flash. |
 
 ## 6. Nicht-funktionale Anforderungen
 
 | ID | Anforderung |
 |---|---|
-| N-01 | Jede Komponente liegt in einer eigenen Datei: Assets, Backpack, Collision, Figure, Map, Quest, Render, Trader, Travel, Window. Gemeinsame Konstanten und Zustände stehen in `EsploraLittleGame.ino`, weil die IDE die Dateien alphabetisch anhängt. |
+| N-01 | Jede Komponente liegt in einer eigenen Datei: Assets, Backpack, Collision, Figure, Map, Quest, Render, Save, Title, Trader, Travel, Window. Gemeinsame Konstanten und Zustände stehen in `EsploraLittleGame.ino`, weil die IDE die Dateien alphabetisch anhängt. |
 | N-02 | Kommentarstil und Benennung (`m`-Präfix, deutsche Kommentare, Trennlinien) bleiben wie im bestehenden Code. |
 | N-03 | Das Spiel lässt sich ohne Hardware testen: `tools/simulator` baut den Sketch für den PC, spielt ihn automatisch durch, prüft den Spielstand und speichert Bildschirmfotos, auch mitten in den Animationen. |
 
@@ -159,29 +171,31 @@ Mit allen Fotos kehrt die Figur zu Surie zurück. Surie hängt die Fotos in ihre
 
 Alle Punkte prüft der Simulator (`python3 tools/simulator/build.py <TFT-Bibliothek>`):
 
-1. Der Start im Haus zeigt Figur, Surie, Schlüssel, Kiste, Tür und Ausgang. Anzeige: 25 Münzen, Ziel „Finde den Schlüssel.“
-2. Die Tür ohne Schlüssel bleibt zu und zeigt einen Hinweis.
-3. Der Schlüssel wird genau einmal aufgenommen.
-4. Die Kiste gibt einmal 75 Münzen und ist danach leer.
-5. Die Tür öffnet sich mit dem Schlüssel, der Schlüssel verschwindet aus dem Rucksack.
-6. Surie gibt den Auftrag. Beim Kaufversuch mit 100 Münzen erscheint „nicht genug Münzen“.
-7. Der Kartenwechsel in den Garten und zurück funktioniert, die 4 Münzen ergeben 200.
-8. Ohne Kamera zeigt der Fotopunkt nur einen Hinweis. Mit Kamera entsteht das Foto.
-9. Die Auswahl im Menü lässt sich mit dem Joystick bewegen.
-10. Die Abgabe des ersten Fotos gibt 150 Münzen. Surie wünscht sich drei weitere Fotos, das Spiel endet nicht.
-11. Die Hecke im Garten ist offen, am Fluss entsteht das Foto der Brücke.
-12. Der Kapitän verkauft das Bootsticket (60), die Seekarten-Animation läuft, die Figur kommt auf der Nachbarinsel an.
-13. Auf der Insel entsteht das Foto der Insel. Die Rückfahrt klappt, und das Ticket bleibt gültig.
-14. Der Busfahrer verkauft das Busticket (40), die Bus-Animation läuft, die Figur kommt am Stadtrand an.
-15. Am Stadtrand entsteht das Foto der Stadt, danach geht es mit dem Bus zurück.
-16. Surie nimmt die drei Fotos an und verlässt den Laden.
-17. Die Haustür im Garten führt in Suries Stube. Die Fotos hängen an der Wand und zeigen beim Anstoßen ihre Beschreibung.
-18. Nach dem Kaffee erscheint das Abschlussfenster.
-19. Kurzes Drücken von Button 1 setzt nicht zurück, eine Sekunde Halten setzt alles zurück.
+1. Nach dem Einschalten ohne Spielstand zeigt der Startbildschirm nur „Neues Spiel“. Button 2 schließt ihn nicht.
+2. Der Start im Haus zeigt Figur, Surie, Schlüssel, Kiste, Tür und Ausgang. Anzeige: 25 Münzen, Ziel „Finde den Schlüssel.“
+3. Die Tür ohne Schlüssel bleibt zu und zeigt einen Hinweis.
+4. Der Schlüssel wird genau einmal aufgenommen.
+5. Die Kiste gibt einmal 75 Münzen und ist danach leer.
+6. Die Tür öffnet sich mit dem Schlüssel, der Schlüssel verschwindet aus dem Rucksack.
+7. Surie gibt den Auftrag. Beim Kaufversuch mit 100 Münzen erscheint „nicht genug Münzen“.
+8. Der Kartenwechsel in den Garten und zurück funktioniert, die 4 Münzen ergeben 200.
+9. Ohne Kamera zeigt der Fotopunkt nur einen Hinweis. Mit Kamera entsteht das Foto, und die LED blitzt.
+10. Die Auswahl im Menü lässt sich mit dem Joystick bewegen.
+11. Die Abgabe des ersten Fotos gibt 150 Münzen. Surie wünscht sich drei weitere Fotos, das Spiel endet nicht.
+12. Die Hecke im Garten ist offen, am Fluss entsteht das Foto der Brücke.
+13. Der Kapitän verkauft das Bootsticket (60), das Schiffshorn ertönt, die Seekarten-Animation läuft, die Figur kommt auf der Nachbarinsel an.
+14. Nach Aus- und Einschalten ist „Spiel laden“ vorausgewählt. Das Laden stellt Karte, Position, Münzen, Rucksack und Fortschritt wieder her.
+15. Auf der Insel entsteht das Foto der Insel. Die Rückfahrt klappt, und das Ticket bleibt gültig.
+16. Der Busfahrer verkauft das Busticket (40), die Bus-Animation läuft, die Figur kommt am Stadtrand an.
+17. Am Stadtrand entsteht das Foto der Stadt, danach geht es mit dem Bus zurück.
+18. Surie nimmt die drei Fotos an und verlässt den Laden.
+19. Die Haustür im Garten führt in Suries Stube. Die Fotos hängen an der Wand und zeigen beim Anstoßen ihre Beschreibung.
+20. Nach dem Kaffee erscheint das Abschlussfenster.
+21. Kurzes Drücken von Button 1 bewirkt nichts. Eine Sekunde Halten führt zum Startbildschirm, dort startet „Neues Spiel“ von vorn.
 
 ## 8. Mögliche nächste Ausbaustufen
 
+Der Flash-Speicher ist mit 98 % fast voll. Weitere Inhalte brauchen vorher Platz, zum Beispiel durch kürzere Texte oder eine Textkompression.
+
 - **Rucksack benutzen:** Mit Button 3 in den Rucksack wechseln, mit dem Joystick einen Platz wählen und die Beschreibung anzeigen. Die Texte (`mItem…Description`) sind schon vorhanden.
-- **Rückmeldung über die Esplora-Hardware:** Mit `Esplora.tone()` ein Ton beim Aufheben oder als Schiffshorn, mit `Esplora.writeRGB()` ein Blitzlicht beim Foto.
-- **Spielstand speichern** im EEPROM (Bitfelder, Rucksack, Münzen: unter 80 Byte).
-- **Mehr Flash freimachen:** Auch die Figuren-Sprites gepackt speichern (spart ca. 600 Byte).
+- **Weitere Töne:** kurze Signale beim Aufheben oder für den Bus. `tone()` ist bereits eingebunden, jeder weitere Ton kostet nur wenige Bytes.

@@ -79,14 +79,14 @@ def main():
     code = ''
     for path in sketch_sources():
         text = open(path).read()
-        text = re.sub(r'^#include\s*<(SPI|TFT|Esplora|avr/pgmspace)\.h>.*$', '', text, flags=re.M)
+        text = re.sub(r'^#include\s*<(SPI|TFT|Esplora|avr/pgmspace|avr/eeprom)\.h>.*$', '', text, flags=re.M)
         code += '\n// ---- %s ----\n#line 1 "%s"\n%s\n' % (os.path.basename(path), path, text)
 
     game = os.path.join(BUILD, 'game_all.cpp')
     with open(game, 'w') as f:
         f.write('#include "%s"\n' % os.path.join(HERE, 'esplora_mock.h'))
         f.write('const unsigned char font[] = {%s};\n' % find_font(sys.argv[1]))
-        f.write('MockTFT EsploraTFT;\nMockEsplora Esplora;\nunsigned long gSimMillis = 0;\nvoid (*gOnDelay)() = NULL;\n')
+        f.write('MockTFT EsploraTFT;\nMockEsplora Esplora;\nunsigned long gSimMillis = 0;\nvoid (*gOnDelay)() = NULL;\nuint8_t gEeprom[1024];\nuint8_t gPinState[32];\nint gLedFlashCount = 0;\n')
         f.write('\n'.join(prototypes(code)) + '\n')
         f.write(code)
         f.write('\n#include "%s"\n' % os.path.join(HERE, 'scenario.cpp'))

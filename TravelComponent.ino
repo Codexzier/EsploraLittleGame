@@ -15,6 +15,7 @@
 #define SHIP_WIDTH         12
 #define SHIP_HEIGHT        10
 #define SHIP_STEPS         60                                          // Bilder fuer die Ueberfahrt
+#define SHIP_HORN_FREQUENCY 165                                        // tiefer Ton fuer das Schiffshorn (Hz)
 #define BUS_WIDTH          48
 #define BUS_HEIGHT         28
 #define BUS_POS_Y          42
@@ -136,41 +137,58 @@ void travelWithNpc() {
 // backToHarbor = Rueckfahrt (Schiff faehrt nach links)
 void playSeaTrip(bool backToHarbor) {
 
-  int startX = backToHarbor ? SHIP_END_X : SHIP_START_X;
-  int startY = backToHarbor ? SHIP_END_Y : SHIP_START_Y;
-  int endX = backToHarbor ? SHIP_START_X : SHIP_END_X;
-  int endY = backToHarbor ? SHIP_START_Y : SHIP_END_Y;
-
   mScene = SCENE_SEA;
   mShipMirror = backToHarbor;
-  mShipX = startX;
-  mShipY = startY;
+  setShipOnRoute(backToHarbor ? SHIP_STEPS : 0);
   renderArea(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-  for(byte i = 1; i < SHIP_STEPS; i += 3) {                            // gepunktete Route
-    int x = SHIP_START_X + (SHIP_END_X - SHIP_START_X) * i / SHIP_STEPS + SHIP_WIDTH / 2;
-    int y = SHIP_START_Y + (SHIP_END_Y - SHIP_START_Y) * i / SHIP_STEPS + SHIP_HEIGHT;
-    EsploraTFT.drawPixel(x, y, colorOf(24));
+  for(byte step = 1; step < SHIP_STEPS; step += 3) {                   // gepunktete Route
+    EsploraTFT.drawPixel(getRouteX(step) + SHIP_WIDTH / 2, getRouteY(step) + SHIP_HEIGHT, colorOf(24));
   }
 
   drawTextP(56, 3, mSeaTitle, colorOf(24));                             // Beschriftung
   drawTextP(4, 76, mSeaHarborLabel, colorOf(24));
   drawTextP(108, 60, mSeaIslandLabel, colorOf(24));
-  delay(400);
+  shipHorn();                                                          // Tuuut - tuuuut: Abfahrt
 
-  for(int step = 1; step <= SHIP_STEPS; step++) {
+  for(byte step = 1; step <= SHIP_STEPS; step++) {
     int oldX = mShipX;
     int oldY = mShipY;
-    mShipX = startX + (endX - startX) * step / SHIP_STEPS;
-    mShipY = startY + (endY - startY) * step / SHIP_STEPS + ((step >> 2) & 1);  // leichtes Schaukeln
+    setShipOnRoute(backToHarbor ? SHIP_STEPS - step : step);
+    mShipY += (step >> 2) & 1;                                         // leichtes Schaukeln
 
     renderArea(min(oldX, mShipX), min(oldY, mShipY),
                SHIP_WIDTH + abs(mShipX - oldX), SHIP_HEIGHT + abs(mShipY - oldY));
     delay(ANIM_FRAME_DELAY);
   }
 
-  delay(400);
+  Esplora.tone(SHIP_HORN_FREQUENCY, 400);                              // kurzes Signal bei der Ankunft
+  delay(500);
   mScene = SCENE_MAP;
+}
+
+// ========================================================================================
+// Position auf der Route vom Hafen (Schritt 0) zur Nachbarinsel (Schritt SHIP_STEPS).
+int getRouteX(byte step) { return SHIP_START_X + (SHIP_END_X - SHIP_START_X) * step / SHIP_STEPS; }
+int getRouteY(byte step) { return SHIP_START_Y + (SHIP_END_Y - SHIP_START_Y) * step / SHIP_STEPS; }
+
+void setShipOnRoute(byte step) {
+  mShipX = getRouteX(step);
+  mShipY = getRouteY(step);
+}
+
+// ========================================================================================
+// Schiffshorn ueber den Summer des Esplora: ein kurzer und ein langer Ton.
+void shipHorn() {
+
+  Esplora.tone(SHIP_HORN_FREQUENCY);
+  delay(350);
+  Esplora.noTone();
+  delay(150);
+  Esplora.tone(SHIP_HORN_FREQUENCY);
+  delay(800);
+  Esplora.noTone();
+  delay(200);
 }
 
 // ========================================================================================
@@ -253,9 +271,9 @@ byte getSeaPixel(int x, int y) {
 
   byte index8 = (y & 7) * 8 + (x & 7);
   switch(land) {
-    case(2):  { return pgm_read_byte(mTileGrass + index8); }
+    case(2):  { return getPackedPixel(mTileGrass, index8); }
     case(1):  { return 27; }                                           // Sand
-    default:  { return pgm_read_byte(mTileWater + index8); }
+    default:  { return getPackedPixel(mTileWater, index8); }
   }
 }
 

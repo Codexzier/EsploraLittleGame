@@ -50,8 +50,6 @@ const PROGMEM uint16_t mPalette[] = {
 #define PALETTE_COUNT 31
 #define PACKED_PALETTE_SIZE 16                                         // Farbtabelle am Anfang gepackter Bilder
 
-char mValuePrint[7];                                                   // Wird fuer die Zeichenausgabe
-                                                                       // von integer Werten verwendet.
 
 // ========================================================================================
 // gibt den Farbweter zurück,
@@ -126,24 +124,6 @@ void renderArea(int x, int y, int width, int height) {
 }
 
 // ========================================================================================
-// Zeichnet ein Bild direkt aus dem Flash Speicher.
-// ----------------------------------------------------------------------------------------
-// x, y            = Anfangsposition
-// width, height   = Groesse des Bildes
-// icon            = Byte Array im Flash Speicher
-// backgroundColor = Farbnummer fuer durchsichtige Pixel
-void drawIcon(int x, int y, byte width, byte height, const byte* icon, byte backgroundColor) {
-
-  EsploraTFT.setAddrWindow(x, y, x + width - 1, y + height - 1);
-
-  int count = width * height;
-  for(int index = 0; index < count; index++) {
-    byte c = pgm_read_byte(icon + index);
-    EsploraTFT.pushColor(colorOf(c == 0 ? backgroundColor : c));
-  }
-}
-
-// ========================================================================================
 // Liest einen Pixel aus einem gepackten Bild (16 Byte Farbtabelle, dann 4 Bit je Pixel).
 // ----------------------------------------------------------------------------------------
 // sprite = gepacktes Bild im Flash Speicher
@@ -175,19 +155,23 @@ void drawPackedIcon(int x, int y, byte width, byte height, const byte* sprite, b
 
 // ========================================================================================
 // Schreibt einen Text aus dem Flash Speicher (ohne Hintergrund).
+// Der Text endet am Textende oder am Zeichen | (Zeilentrenner).
 // ----------------------------------------------------------------------------------------
-// x, y  = Anfangsposition
-// text  = Text im Flash Speicher
-// color = Farbwert (RGB565)
-void drawTextP(int x, int y, const char* text, uint16_t color) {
+// x, y      = Anfangsposition
+// text      = Text im Flash Speicher
+// color     = Farbwert (RGB565)
+// Rueckgabe = Position des Endezeichens (0 oder |)
+const char* drawTextP(int x, int y, const char* text, uint16_t color) {
 
   char c = pgm_read_byte(text);
-  while(c != 0) {
+  while(c != 0 && c != '|') {
     EsploraTFT.drawChar(x, y, c, color, color, 1);                     // gleiche Farbe = ohne Hintergrund
     x += 6;
     text++;
     c = pgm_read_byte(text);
   }
+
+  return text;
 }
 
 // ========================================================================================
@@ -196,11 +180,19 @@ void drawTextP(int x, int y, const char* text, uint16_t color) {
 // x, y  = Anfangsposition
 // value = Zahl
 // color = Farbwert (RGB565)
-void drawNumber(int x, int y, int value, uint16_t color) {
+// Rueckgabe = Position hinter der Zahl
+int drawNumber(int x, int y, int value, uint16_t color) {
 
-  itoa(value, mValuePrint, 10);
-  for(byte i = 0; mValuePrint[i] != 0; i++) {
-    EsploraTFT.drawChar(x, y, mValuePrint[i], color, color, 1);
+  if(value < 0) {                                                      // Minus Zeichen
+    EsploraTFT.drawChar(x, y, '-', color, color, 1);
     x += 6;
+    value = -value;
   }
+
+  if(value >= 10) {                                                    // vordere Stellen zuerst
+    x = drawNumber(x, y, value / 10, color);
+  }
+
+  EsploraTFT.drawChar(x, y, '0' + value % 10, color, color, 1);
+  return x + 6;
 }

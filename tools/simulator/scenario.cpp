@@ -111,8 +111,15 @@ static void shotDuringAnimation(const char* name, int atDelay) {
 int main(int argc, char** argv) {
 
   if(argc > 1) { gOutDir = argv[1]; }
+  memset(gEeprom, 0xFF, sizeof(gEeprom));                              // leerer EEPROM wie ab Werk
   stick(0, 0);
   setup();
+  step(10);
+  check(mWindowType == WIN_TITLE && mWindowOptionCount == 1, "Startbildschirm ohne Spielstand: nur Neues Spiel");
+  shot("00_title");
+  press(SWITCH_2);
+  check(mWindowType == WIN_TITLE, "Button 2 schliesst den Startbildschirm nicht");
+  press(SWITCH_4);
   step(10);
   shot("01_start");
   check(mCurrentMap == MAP_HOUSE && mCoins == START_COINS, "Start im Haus mit 25 Muenzen");
@@ -233,6 +240,7 @@ int main(int argc, char** argv) {
   press(SWITCH_4);
   step(5);
   check(hasItem(ITEM_PHOTO), "Foto im Rucksack");
+  check(gLedFlashCount == 1, "Blitzlicht der RGB LED beim Foto");
   press(SWITCH_4);
   shot("12_garden_with_photo");
 
@@ -302,7 +310,27 @@ int main(int argc, char** argv) {
   gOnDelay = NULL;
   step(5);
   check(mCurrentMap == MAP_ISLAND && mScene == SCENE_MAP, "Ankunft auf der Nachbarinsel");
+  check(Esplora.toneCount >= 3 && Esplora.toneFrequency == 0, "Schiffshorn gespielt und wieder aus");
   shot("18_island");
+
+  printf("Schritt: Aus- und Einschalten, Spielstand laden\n");
+  int savedCoins = mCoins;
+  int savedX = mPosX;
+  int savedY = mPosY;
+  memset(mBackPlaces, 0, sizeof(mBackPlaces));                         // SRAM geht beim Ausschalten verloren
+  memset(mTileConsumed, 0, sizeof(mTileConsumed));
+  mQuestState = QUEST_START;
+  mCoins = 0;
+  setup();
+  step(10);
+  check(mWindowType == WIN_TITLE && mWindowOptionCount == 2 && mWindowChoice == 1,
+        "Startbildschirm mit Spielstand: Spiel laden ist vorausgewaehlt");
+  shot("18b_title_load");
+  press(SWITCH_4);
+  step(10);
+  check(mCurrentMap == MAP_ISLAND && mPosX == savedX && mPosY == savedY && mCoins == savedCoins &&
+        mQuestState == QUEST_MORE_PHOTOS && hasItem(ITEM_PHOTO_BRIDGE) && hasItem(ITEM_BOAT_TICKET) &&
+        isHouseDoorOpen(), "Spielstand geladen: Karte, Position, Muenzen, Rucksack, Fortschritt");
 
   printf("Schritt: Insel\n");
   walkY(32);
@@ -422,8 +450,16 @@ int main(int argc, char** argv) {
 
   printf("Schritt: Neustart\n");
   hold(SWITCH_1, 400);
-  check(mQuestState == QUEST_COFFEE, "kurzes Druecken setzt nicht zurueck");
+  check(mWindowType == WIN_NONE, "kurzes Druecken fuehrt nicht zum Startbildschirm");
   hold(SWITCH_1, 1200);
+  step(5);
+  check(mWindowType == WIN_TITLE && mWindowChoice == 1, "Button 1 halten: Startbildschirm");
+  stick(0, -1);
+  step(10);
+  stick(0, 0);
+  step(10);
+  check(mWindowChoice == 0, "Neues Spiel ausgewaehlt");
+  press(SWITCH_4);
   step(5);
   check(mQuestState == QUEST_START && mCoins == START_COINS && !hasItem(ITEM_KEY) &&
         mCurrentMap == MAP_HOUSE && !isHouseDoorOpen(), "Neustart setzt alles zurueck");

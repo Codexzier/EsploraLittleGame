@@ -132,6 +132,7 @@ void loadMap(byte mapId, int positionX, int positionY) {
   mTriggerLatch = (footY / MAP_TILE_SIZE) * MAP_TILE_COUNT_X + (footX / MAP_TILE_SIZE);
 
   renderArea(0, 0, MAP_WIDTH, MAP_HEIGHT);                              // gesammte Karte zeichnen
+  saveGame();                                                          // automatisch speichern
 }
 
 // ========================================================================================
@@ -229,51 +230,54 @@ byte getTilePixel(int x, int y) {
 }
 
 // ========================================================================================
+// Texturen je Kachel Typ (Index = Kachel Typ, NULL = keine Textur, also Boden)
+// und die Groesse: 8 = 8x8 Muster (wird wiederholt), 16 = 16x16 Bild
+
+const byte* const PROGMEM mTileTextures[] = {
+  mTileFloor,        mTileWall,          mItemKey01Icon,       NULL,                  // 0 bis 3
+  NULL,              mTileDoor,          NULL,                 mTileChest,            // 4 bis 7
+  mTileExit,         mTileGrass,         mTilePath,            mTileTree,             // 8 bis 11
+  mTileHouseWall,    mTileRoof,          NULL,                 mTilePhotoSpot,        // 12 bis 15 (Muenze extra)
+  mTileHedge,        mTileFlowers,       mTileHouseDoor,       mTileWater,            // 16 bis 19
+  mTileBridge,       mTileSand,          mTilePalm,            mTileBoat,             // 20 bis 23
+  mTileRoad,         mTileBusSign,       mTileFacade,          mTileFarIsland,        // 24 bis 27
+  mTileTable,        mItemPhoto01Icon,   mItemPhotoBridgeIcon, mItemPhotoIslandIcon,  // 28 bis 31
+  mItemPhotoCityIcon                                                                  // 32
+};
+
+const PROGMEM byte mTileTextureSize[] = {
+  8, 8, 16, 0,   0, 16, 0, 16,   16, 8, 8, 16,   16, 8, 0, 16,
+  8, 8, 16, 8,   8, 8, 16, 16,   8, 16, 8, 16,   16, 16, 16, 16,   16
+};
+
+#define TILE_TEXTURE_COUNT 33
+
+// ========================================================================================
 // Liefert die Farbnummer einer Kachel Textur.
 // ----------------------------------------------------------------------------------------
 // tile   = Kachel Typ
 // px, py = Position innerhalb der Kachel (0 bis 15)
 byte getTileTexturePixel(byte tile, byte px, byte py) {
 
-  byte index8 = (py & 7) * 8 + (px & 7);                               // Index fuer 8x8 Muster
-  uint16_t index16 = py * 16 + px;                                     // Index fuer 16x16 Kacheln
-
-  switch(tile) {
-    case(TILE_FLOOR):          { return pgm_read_byte(mTileFloor + index8); }
-    case(TILE_WALL):           { return pgm_read_byte(mTileWall + index8); }
-    case(TILE_GRASS):          { return pgm_read_byte(mTileGrass + index8); }
-    case(TILE_PATH):           { return pgm_read_byte(mTilePath + index8); }
-    case(TILE_HEDGE):          { return pgm_read_byte(mTileHedge + index8); }
-    case(TILE_ROOF):           { return pgm_read_byte(mTileRoof + index8); }
-    case(TILE_FLOWERS):        { return pgm_read_byte(mTileFlowers + index8); }
-    case(TILE_WATER):          { return pgm_read_byte(mTileWater + index8); }
-    case(TILE_BRIDGE):         { return pgm_read_byte(mTileBridge + index8); }
-    case(TILE_SAND):           { return pgm_read_byte(mTileSand + index8); }
-    case(TILE_ROAD):           { return pgm_read_byte(mTileRoad + index8); }
-    case(TILE_FACADE):         { return pgm_read_byte(mTileFacade + index8); }
-    case(TILE_KEY):            { return getPackedPixel(mItemKey01Icon, index16); }
-    case(TILE_DOOR):           { return getPackedPixel(mTileDoor, index16); }
-    case(TILE_CHEST):          { return getPackedPixel(mTileChest, index16); }
-    case(TILE_EXIT):           { return getPackedPixel(mTileExit, index16); }
-    case(TILE_TREE):           { return getPackedPixel(mTileTree, index16); }
-    case(TILE_HOUSE_WALL):     { return getPackedPixel(mTileHouseWall, index16); }
-    case(TILE_HOUSE_DOOR):     { return getPackedPixel(mTileHouseDoor, index16); }
-    case(TILE_PHOTO_SPOT):     { return getPackedPixel(mTilePhotoSpot, index16); }
-    case(TILE_PALM):           { return getPackedPixel(mTilePalm, index16); }
-    case(TILE_BOAT):           { return getPackedPixel(mTileBoat, index16); }
-    case(TILE_BUS_SIGN):       { return getPackedPixel(mTileBusSign, index16); }
-    case(TILE_FAR_ISLAND):     { return getPackedPixel(mTileFarIsland, index16); }
-    case(TILE_TABLE):          { return getPackedPixel(mTileTable, index16); }
-    case(TILE_PICTURE_GARDEN): { return getPackedPixel(mItemPhoto01Icon, index16); }
-    case(TILE_PICTURE_BRIDGE): { return getPackedPixel(mItemPhotoBridgeIcon, index16); }
-    case(TILE_PICTURE_ISLAND): { return getPackedPixel(mItemPhotoIslandIcon, index16); }
-    case(TILE_PICTURE_CITY):   { return getPackedPixel(mItemPhotoCityIcon, index16); }
-    case(TILE_COIN): {                                                 // Muenze 7x7 in der Mitte
-      if(px >= 4 && px < 11 && py >= 4 && py < 11) {
-        return pgm_read_byte(mCoinSpiteIcon + (py - 4) * 7 + (px - 4));
-      }
-      return 0;
+  if(tile == TILE_COIN) {                                              // Muenze 7x7 in der Mitte
+    if(px >= 4 && px < 11 && py >= 4 && py < 11) {
+      return getPackedPixel(mCoinSpiteIcon, (py - 4) * 7 + (px - 4));
     }
-    default: { return 0; }                                             // Figuren Startplaetze: Boden
+    return 0;
   }
+
+  if(tile >= TILE_TEXTURE_COUNT) {                                     // Figuren Startplaetze: Boden
+    return 0;
+  }
+
+  const byte* texture = (const byte*)pgm_read_ptr(&mTileTextures[tile]);
+  if(texture == NULL) {
+    return 0;
+  }
+
+  if(pgm_read_byte(&mTileTextureSize[tile]) == 8) {                    // 8x8 Muster wiederholen
+    return getPackedPixel(texture, (py & 7) * 8 + (px & 7));
+  }
+
+  return getPackedPixel(texture, py * 16 + px);
 }

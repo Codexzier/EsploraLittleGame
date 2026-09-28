@@ -17,8 +17,6 @@
 #define WIN_LINE_CHARS    23                                           // Zeichen pro Zeile
 #define WIN_LINE_HEIGHT   9                                            // Pixel pro Zeile
 
-int mWindowOptionsY = 0;                                               // Position der Auswahl im Fenster
-bool mWindowWaitRelease = false;                                       // erst navigieren, wenn der Stick losgelassen wurde
 
 // ----------------------------------------------------------------------------------------
 // Texte
@@ -36,6 +34,8 @@ const PROGMEM char mOptBuyBoatTicket[] = "Kaufe Ticket (60)";
 const PROGMEM char mOptBuyBusTicket[] = "Kaufe Ticket (40)";
 const PROGMEM char mOptTravel[] = "Losfahren";
 const PROGMEM char mOptDrinkCoffee[] = "Kaffee trinken";
+const PROGMEM char mOptNewGame[] = "Neues Spiel";
+const PROGMEM char mOptLoadGame[] = "Spiel laden";
 
 const PROGMEM char mWindowFooterNext[] = "[4] Weiter";
 const PROGMEM char mWindowFooterChoice[] = "[4] OK    [2] Zurueck";
@@ -94,6 +94,7 @@ void closeWindow() {
   }
 
   renderArea(WIN_X, WIN_Y, WIN_W, WIN_H);
+  saveGame();                                                          // automatisch speichern
 }
 
 // ========================================================================================
@@ -135,14 +136,14 @@ void updateWindow(unsigned long now) {
   }
 
   if(buttonPressed(SWITCH_4)) {                                        // Bestaetigen
-    if(mWindowType == WIN_CHOICE) {
+    if(mWindowOptionCount > 0) {
       onWindowChoice(mWindowOptions[mWindowChoice]);
     }
     else {
       closeWindow();
     }
   }
-  else if(buttonPressed(SWITCH_2)) {                                   // Fenster schließen mit Button 2
+  else if(buttonPressed(SWITCH_2) && mWindowType != WIN_TITLE) {       // Fenster schließen mit Button 2
     closeWindow();
   }
 }
@@ -150,6 +151,12 @@ void updateWindow(unsigned long now) {
 // ========================================================================================
 // Zeichnet das Fenster mit einem Ensprechenden Text
 void drawWindow() {
+
+  if(mWindowType == WIN_TITLE) {                                       // Startbildschirm
+    drawTitle();
+    drawWindowOptions();
+    return;
+  }
 
   EsploraTFT.fillRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(1));
   EsploraTFT.drawRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(18));
@@ -204,6 +211,8 @@ const char* getOptionLabel(byte option) {
     case(OPT_BUY_BUS_TICKET):  { return mOptBuyBusTicket; }
     case(OPT_TRAVEL):      { return mOptTravel; }
     case(OPT_DRINK_COFFEE): { return mOptDrinkCoffee; }
+    case(OPT_NEW_GAME):    { return mOptNewGame; }
+    case(OPT_LOAD_GAME):   { return mOptLoadGame; }
     default:               { return mOptBye; }
   }
 }

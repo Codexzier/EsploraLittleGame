@@ -14,6 +14,17 @@ byte mAnimSequenz[4] = { 0, 1, 2, 1 };                                 // Animat
                                                                       // als wenn man die function in case 1 nochmal in default einträgt.
 
 // ========================================================================================
+// Sprites je Blickrichtung (unten, oben, seitlich) und Animationsbild (links, mitte, rechts).
+// Das rechte Bild ist bei unten / oben das gespiegelte linke Bild.
+// Die Sprites stehen in AssetsData.ino.
+
+const byte* const PROGMEM mFigureSprites[3][3] = {
+  { mSpriteFigureFrontLeft, mSpriteFigureFrontMiddle, mSpriteFigureFrontLeft },
+  { mSpriteFigureBackLeft,  mSpriteFigureBackMiddle,  mSpriteFigureBackLeft  },
+  { mSpriteFigureSideLeft,  mSpriteFigureSideMiddle,  mSpriteFigureSideRight },
+};
+
+// ========================================================================================
 // Naechstes Bild der Laufanimation.
 void figureAdvanceAnimation() {
 
@@ -47,32 +58,10 @@ byte getFigurePixel(int x, int y) {
     return 0;
   }
 
-  const byte* sprite;
-  bool mirror = false;
   byte frame = mAnimSequenz[mAnimStep];
-
-  if(mFacingY == 1) {                                                  // nach unten
-    switch(frame){
-      case(0): { sprite = mSpriteFigureFrontLeft; break; }
-      case(1): { sprite = mSpriteFigureFrontMiddle; break; }
-      default: { sprite = mSpriteFigureFrontLeft; mirror = true; break; }
-    }
-  }
-  else if(mFacingY == -1) {                                            // nach oben
-    switch(frame){
-      case(0): { sprite = mSpriteFigureBackLeft; break; }
-      case(1): { sprite = mSpriteFigureBackMiddle; break; }
-      default: { sprite = mSpriteFigureBackLeft; mirror = true; break; }
-    }
-  }
-  else {                                                               // nach links, nach rechts gespiegelt
-    switch(frame){
-      case(0): { sprite = mSpriteFigureSideLeft; break; }
-      case(1): { sprite = mSpriteFigureSideMiddle; break; }
-      default: { sprite = mSpriteFigureSideRight; break; }
-    }
-    mirror = (mFacingX == 1);
-  }
+  byte row = (mFacingY == 1) ? 0 : ((mFacingY == -1) ? 1 : 2);          // unten, oben, seitlich
+  const byte* sprite = (const byte*)pgm_read_ptr(&mFigureSprites[row][frame]);
+  bool mirror = (row == 2) ? (mFacingX == 1) : (frame == 2);           // nach rechts gespiegelt
 
   if(mirror) {
     localX = FIGURE_WIDTH - 1 - localX;

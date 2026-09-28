@@ -33,16 +33,19 @@ byte mLastGoal = 255;                                                  // zuletz
 const PROGMEM char mDoorTitle[] = "Tuer";
 const PROGMEM char mDoorLockedText[] = "Die Tuer ist verschlossen. Irgendwo muss ein Schluessel sein.";
 const PROGMEM char mDoorOpenedText[] = "Der Schluessel passt! Die Tuer ist jetzt offen.";
-const PROGMEM char mKeyFoundText[] = "Ein Schluessel! Damit laesst sich bestimmt eine Tuer oeffnen.";
+const PROGMEM char mKeyFoundText[] = "Ein Schluessel! Er oeffnet bestimmt eine Tuer.";
 const PROGMEM char mHouseDoorTitle[] = "Haustuer";
 const PROGMEM char mHouseDoorText[] = "Es ist niemand zu Hause.";
 const PROGMEM char mTableTitle[] = "Tisch";
-const PROGMEM char mTableText[] = "Zwei Tassen Kaffee und ein Stueck Kuchen stehen bereit.";
+const PROGMEM char mTableText[] = "Kaffee und Kuchen stehen bereit.";
 const PROGMEM char mPictureTitle[] = "Foto an der Wand";
+const char* const PROGMEM mPictureTexts[] = {                          // Beschreibung der Fotos an der Wand
+  mItemPhoto01Description, mItemPhotoBridgeDescription, mItemPhotoIslandDescription, mItemPhotoCityDescription
+};
 const PROGMEM char mPhotoSpotTitle[] = "Fotopunkt";
 const PROGMEM char mPhotoSpotText[] = "Baum und Haus im Sonnenschein - ein schoenes Motiv!";
 const PROGMEM char mPhotoSpotBridgeText[] = "Die alte Bruecke ueber den Fluss - ein schoenes Motiv!";
-const PROGMEM char mPhotoSpotIslandText[] = "Da drueben liegt eine kleine Insel mitten im Meer - ein schoenes Motiv!";
+const PROGMEM char mPhotoSpotIslandText[] = "Eine kleine Insel mitten im Meer - ein schoenes Motiv!";
 const PROGMEM char mPhotoSpotCityText[] = "Die Stadt mit ihren vielen Haeusern - ein schoenes Motiv!";
 const PROGMEM char mPhotoSpotNoCameraText[] = "Ein schoenes Motiv! Haette ich nur eine Kamera...";
 const PROGMEM char mPhotoTakenText[] = "Klick! Das Foto ist jetzt im Rucksack.";
@@ -51,25 +54,28 @@ const PROGMEM char mEndTitle[] = "Geschafft!";
 const PROGMEM char mEndText[] = "Die Fotos haengen an der Wand und ihr trinkt Kaffee. Danke fuers Spielen! [1] halten = Neues Spiel";
 
 // ----------------------------------------------------------------------------------------
-// Ziele (zwei Zeilen mit je hoechstens 18 Zeichen)
+// Ziele: zwei Zeilen mit je hoechstens 18 Zeichen, getrennt durch |
 
-#define GOAL_COUNT 15
-const PROGMEM char mGoalTexts[GOAL_COUNT][2][19] = {
-  { "Finde den",          "Schluessel."        },                      // 0
-  { "Oeffne die Tuer.",   ""                   },                      // 1
-  { "Sprich mit Surie.",  ""                   },                      // 2
-  { "Sammle 200 Muenzen", "fuer die Kamera."   },                      // 3
-  { "Kaufe die Kamera",   "bei Surie."         },                      // 4
-  { "Fotografiere Baum",  "und Haus (Garten)." },                      // 5
-  { "Bring Surie",        "das Foto."          },                      // 6
-  { "Fotografiere die",   "Bruecke (Osten)."   },                      // 7
-  { "Kaufe am Hafen",     "ein Bootsticket."   },                      // 8
-  { "Fotografiere die",   "Insel im Meer."     },                      // 9
-  { "Kaufe ein Ticket",   "beim Busfahrer."    },                      // 10
-  { "Fotografiere die",   "Stadt."             },                      // 11
-  { "Bring Surie",        "die drei Fotos."    },                      // 12
-  { "Besuche Surie in",   "ihrem Haus."        },                      // 13
-  { "Geschafft!",         "[1] halten = Neu"   },                      // 14
+const PROGMEM char mGoal00[] = "Finde den|Schluessel.";
+const PROGMEM char mGoal01[] = "Oeffne die Tuer.";
+const PROGMEM char mGoal02[] = "Sprich mit Surie.";
+const PROGMEM char mGoal03[] = "Sammle 200 Muenzen|fuer die Kamera.";
+const PROGMEM char mGoal04[] = "Kaufe die Kamera|bei Surie.";
+const PROGMEM char mGoal05[] = "Fotografiere Baum|und Haus (Garten).";
+const PROGMEM char mGoal06[] = "Bring Surie|das Foto.";
+const PROGMEM char mGoal07[] = "Fotografiere die|Bruecke (Osten).";
+const PROGMEM char mGoal08[] = "Kaufe am Hafen|ein Bootsticket.";
+const PROGMEM char mGoal09[] = "Fotografiere die|Insel im Meer.";
+const PROGMEM char mGoal10[] = "Kaufe ein Ticket|beim Busfahrer.";
+const PROGMEM char mGoal11[] = "Fotografiere die|Stadt.";
+const PROGMEM char mGoal12[] = "Bring Surie|die drei Fotos.";
+const PROGMEM char mGoal13[] = "Besuche Surie in|ihrem Haus.";
+const PROGMEM char mGoal14[] = "Geschafft!|[1] halten = Neu";
+
+const char* const PROGMEM mGoalTexts[] = {
+  mGoal00, mGoal01, mGoal02, mGoal03, mGoal04,
+  mGoal05, mGoal06, mGoal07, mGoal08, mGoal09,
+  mGoal10, mGoal11, mGoal12, mGoal13, mGoal14
 };
 
 // ========================================================================================
@@ -128,11 +134,13 @@ void onBump(byte blocker) {
       openWindow(WIN_MESSAGE, mTableTitle, mTableText);
       break;
     }
-    case(TILE_PICTURE_GARDEN): { openWindow(WIN_MESSAGE, mPictureTitle, mItemPhoto01Description); break; }
-    case(TILE_PICTURE_BRIDGE): { openWindow(WIN_MESSAGE, mPictureTitle, mItemPhotoBridgeDescription); break; }
-    case(TILE_PICTURE_ISLAND): { openWindow(WIN_MESSAGE, mPictureTitle, mItemPhotoIslandDescription); break; }
-    case(TILE_PICTURE_CITY):   { openWindow(WIN_MESSAGE, mPictureTitle, mItemPhotoCityDescription); break; }
-    default: { break; }
+    default: {
+      if(tile >= TILE_PICTURE_GARDEN && tile <= TILE_PICTURE_CITY) {   // Fotos an der Wand
+        openWindow(WIN_MESSAGE, mPictureTitle,
+                   (const char*)pgm_read_ptr(&mPictureTexts[tile - TILE_PICTURE_GARDEN]));
+      }
+      break;
+    }
   }
 }
 
@@ -241,8 +249,11 @@ void onWindowChoice(byte option) {
     case(OPT_BUY_BUS_TICKET):  { traderBuy(ITEM_BUS_TICKET); break; }
     case(OPT_TRAVEL):          { travelWithNpc(); break; }
     case(OPT_DRINK_COFFEE):    { traderDrinkCoffee(); break; }
+    case(OPT_NEW_GAME):        { resetGame(); break; }
+    case(OPT_LOAD_GAME):       { loadGame(); break; }
     case(OPT_TAKE_PHOTO): {
       if(addItem(getPhotoOfMap())) {
+        cameraFlash();
         openWindow(WIN_MESSAGE, mPhotoSpotTitle, mPhotoTakenText);
       }
       else {
@@ -257,6 +268,29 @@ void onWindowChoice(byte option) {
   }
 
   drawGoal(false);
+}
+
+// ========================================================================================
+// Blitzlicht der Kamera mit der RGB LED des Esplora.
+// Die LED leuchtet voll weiss, dafuer reicht digitalWrite (spart den Flash Speicher
+// fuer analogWrite, das hinter Esplora.writeRGB steckt).
+#define LED_RED_PIN    5                                               // Pins der RGB LED (siehe Esplora.cpp)
+#define LED_GREEN_PIN  10
+#define LED_BLUE_PIN   9
+
+void cameraFlash() {
+
+  setLedWhite(HIGH);
+  delay(80);
+  setLedWhite(LOW);
+}
+
+// ========================================================================================
+// Schaltet alle drei Farben der RGB LED ein oder aus.
+void setLedWhite(byte state) {
+  digitalWrite(LED_RED_PIN, state);
+  digitalWrite(LED_GREEN_PIN, state);
+  digitalWrite(LED_BLUE_PIN, state);
 }
 
 // ========================================================================================
@@ -300,8 +334,11 @@ void drawGoal(bool redraw) {
   mLastGoal = goal;
 
   EsploraTFT.fillRect(51, HUD_POS_Y + 12, MAP_WIDTH - 51, 20, colorOf(1));
-  drawTextP(51, HUD_POS_Y + 13, mGoalTexts[goal][0], colorOf(19));
-  drawTextP(51, HUD_POS_Y + 22, mGoalTexts[goal][1], colorOf(19));
+  const char* text = (const char*)pgm_read_ptr(&mGoalTexts[goal]);
+  text = drawTextP(51, HUD_POS_Y + 13, text, colorOf(19));             // erste Zeile bis zum |
+  if(pgm_read_byte(text) == '|') {
+    drawTextP(51, HUD_POS_Y + 22, text + 1, colorOf(19));              // zweite Zeile
+  }
 }
 
 // ========================================================================================
