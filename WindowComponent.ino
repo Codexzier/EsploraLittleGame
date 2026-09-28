@@ -1,47 +1,231 @@
 // ========================================================================================
 // Description:       Inhalte und Methoden zum Darstellen eines Message Box Fensters.
+// ----------------------------------------------------------------------------------------
+// Steuerung:         Joystick hoch / runter = Auswahl wechseln
+//                    Button 4 (rechts)      = Bestaetigen / Weiter
+//                    Button 2 (links)       = Schliessen / Zurueck
 // ========================================================================================
 
 // ========================================================================================
 // Functionsvariablen
 
-bool mLastStateShowWindow = false;   // Legt ein Fenster in den Vordergrund
-bool mWindowHasRendered = false;
+#define WIN_X             4                                            // Position und Groesse des Fensters
+#define WIN_Y             4
+#define WIN_W             152
+#define WIN_H             88
+#define WIN_TEXT_X        (WIN_X + 6)
+#define WIN_LINE_CHARS    23                                           // Zeichen pro Zeile
+#define WIN_LINE_HEIGHT   9                                            // Pixel pro Zeile
+
+int mWindowOptionsY = 0;                                               // Position der Auswahl im Fenster
+bool mWindowWaitRelease = false;                                       // erst navigieren, wenn der Stick losgelassen wurde
+
+// ----------------------------------------------------------------------------------------
+// Texte
+
+const PROGMEM char mOptOpenChest[] = "Oeffnen";
+const PROGMEM char mOptKeepClosed[] = "Zu lassen";
+const PROGMEM char mOptBuyCamera[] = "Kaufe Kamera (200)";
+const PROGMEM char mOptSellCamera[] = "Verkaufe Kamera (140)";
+const PROGMEM char mOptGivePhoto[] = "Gib Surie das Foto";
+const PROGMEM char mOptBye[] = "Tschuess";
+const PROGMEM char mOptTakePhoto[] = "Foto machen";
+const PROGMEM char mOptNotNow[] = "Nicht jetzt";
+
+const PROGMEM char mWindowFooterNext[] = "[4] Weiter";
+const PROGMEM char mWindowFooterChoice[] = "[4] OK    [2] Zurueck";
+
+// ========================================================================================
+// Methoden
+// ========================================================================================
+
+// ========================================================================================
+// Oeffnet ein Fenster. Gezeichnet wird es im naechsten Durchlauf.
+// ----------------------------------------------------------------------------------------
+// type  = WIN_MESSAGE, WIN_CHOICE oder WIN_END
+// title = Titel im Flash Speicher (NULL = ohne Titel)
+// text  = Text im Flash Speicher
+void openWindow(byte type, const char* title, const char* text) {
+
+  mWindowType = type;
+  mWindowTitle = title;
+  mWindowText = text;
+  mWindowOptionCount = 0;
+  mWindowChoice = 0;
+  mWindowNeedsDraw = true;
+  mWindowWaitRelease = true;
+}
+
+// ========================================================================================
+// Fuegt dem Fenster eine Auswahl hinzu.
+void addWindowOption(byte option) {
+
+  if(mWindowOptionCount < WINDOW_MAX_OPTIONS) {
+    mWindowOptions[mWindowOptionCount] = option;
+    mWindowOptionCount++;
+  }
+}
+
+// ========================================================================================
+// Schliesst das Fenster und zeichnet die Karte darunter neu.
+void closeWindow() {
+
+  mWindowType = WIN_NONE;
+  mWindowOptionCount = 0;
+  renderArea(WIN_X, WIN_Y, WIN_W, WIN_H);
+
+  if(mWindowShowEndNext) {
+    mWindowShowEndNext = false;
+    openEndWindow();
+  }
+}
+
+// ========================================================================================
+// Navigation im Fenster, wird in jedem Durchlauf aufgerufen.
+void updateWindow(unsigned long now) {
+
+  if(mWindowNeedsDraw) {
+    drawWindow();
+    mWindowNeedsDraw = false;
+  }
+
+  int8_t dx = 0;
+  int8_t dy = 0;
+  readStick(&dx, &dy);
+
+  if(dy == 0) {                                                        // Stick in der Mitte
+    mWindowWaitRelease = false;
+    mLastMenuMove = 0;
+  }
+  else if(!mWindowWaitRelease && mWindowOptionCount > 1 &&             // verzoegert die Eingaben fuer die Navigation
+          (mLastMenuMove == 0 || now - mLastMenuMove > MENU_REPEAT_INTERVAL)) {
+
+    mWindowChoice = (mWindowChoice + mWindowOptionCount + dy) % mWindowOptionCount;
+    mLastMenuMove = now;
+    drawWindowOptions();
+  }
+
+  if(buttonPressed(SWITCH_4)) {                                        // Bestaetigen
+    if(mWindowType == WIN_CHOICE) {
+      onWindowChoice(mWindowOptions[mWindowChoice]);
+    }
+    else {
+      closeWindow();
+    }
+  }
+  else if(buttonPressed(SWITCH_2)) {                                   // Fenster schließen mit Button 2
+    closeWindow();
+  }
+}
 
 // ========================================================================================
 // Zeichnet das Fenster mit einem Ensprechenden Text
+void drawWindow() {
+
+  EsploraTFT.fillRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(1));
+  EsploraTFT.drawRect(WIN_X, WIN_Y, WIN_W, WIN_H, colorOf(18));
+  EsploraTFT.drawRect(WIN_X + 2, WIN_Y + 2, WIN_W - 4, WIN_H - 4, colorOf(18));
+
+  int y = WIN_Y + 6;
+  if(mWindowTitle != NULL) {                                           // Titel in gelb
+    drawTextP(WIN_TEXT_X, y, mWindowTitle, colorOf(12));
+    y += WIN_LINE_HEIGHT + 3;
+  }
+
+  byte lines = drawWrappedTextP(WIN_TEXT_X, y, mWindowText, colorOf(19));
+  mWindowOptionsY = y + lines * WIN_LINE_HEIGHT + 3;
+  drawWindowOptions();
+
+  drawTextP(WIN_TEXT_X, WIN_Y + WIN_H - 13,
+            mWindowType == WIN_CHOICE ? mWindowFooterChoice : mWindowFooterNext,
+            colorOf(18));
+}
+
 // ========================================================================================
-// rightSide = soll das Fenster auf der Rechten Seite angezeigt werden (Standard Maessig wird es in der Mitte angezeigt)
-void drawWindow(bool rightSide) {
+// Zeichnet die Auswahl. Die gewaehlte Zeile ist gelb und hat einen Pfeil.
+void drawWindowOptions() {
 
-  if(mLastStateShowWindow != mShowWindow && !mShowWindow) {
-    mLastStateShowWindow = mShowWindow;
-    drawStack(true);
+  for(byte i = 0; i < mWindowOptionCount; i++) {
+    int y = mWindowOptionsY + i * WIN_LINE_HEIGHT;
+    bool selected = (i == mWindowChoice);
+    uint16_t color = colorOf(selected ? 12 : 18);
+
+    EsploraTFT.fillRect(WIN_TEXT_X, y, WIN_W - 12, 8, colorOf(1));
+    if(selected) {
+      EsploraTFT.drawChar(WIN_TEXT_X, y, '>', color, color, 1);
+    }
+    drawTextP(WIN_TEXT_X + 12, y, getOptionLabel(mWindowOptions[i]), color);
+  }
+}
+
+// ========================================================================================
+// Text zu einer Auswahl.
+const char* getOptionLabel(byte option) {
+
+  switch(option) {
+    case(OPT_OPEN_CHEST):  { return mOptOpenChest; }
+    case(OPT_KEEP_CLOSED): { return mOptKeepClosed; }
+    case(OPT_BUY_CAMERA):  { return mOptBuyCamera; }
+    case(OPT_SELL_CAMERA): { return mOptSellCamera; }
+    case(OPT_GIVE_PHOTO):  { return mOptGivePhoto; }
+    case(OPT_TAKE_PHOTO):  { return mOptTakePhoto; }
+    case(OPT_NOT_NOW):     { return mOptNotNow; }
+    default:               { return mOptBye; }
+  }
+}
+
+// ========================================================================================
+// Schreibt einen Text mit Zeilenumbruch an Wortgrenzen.
+// ----------------------------------------------------------------------------------------
+// x, y  = Anfangsposition
+// text  = Text im Flash Speicher
+// color = Farbwert (RGB565)
+// Rueckgabe = Anzahl der geschriebenen Zeilen
+byte drawWrappedTextP(int x, int y, const char* text, uint16_t color) {
+
+  byte line = 0;
+  byte column = 0;
+
+  while(true) {
+    char c = pgm_read_byte(text);
+    if(c == 0) {
+      break;
+    }
+
+    if(c == ' ') {                                                     // Leerzeichen nur innerhalb einer Zeile
+      if(column > 0) {
+        column++;
+      }
+      text++;
+      continue;
+    }
+
+    byte length = 0;                                                   // Laenge des naechsten Wortes
+    while(true) {
+      char w = pgm_read_byte(text + length);
+      if(w == 0 || w == ' ') {
+        break;
+      }
+      length++;
+    }
+
+    if(column > 0 && column + length > WIN_LINE_CHARS) {               // Wort passt nicht mehr in die Zeile
+      line++;
+      column = 0;
+    }
+
+    for(byte i = 0; i < length; i++) {
+      if(column >= WIN_LINE_CHARS) {                                   // sehr langes Wort trennen
+        line++;
+        column = 0;
+      }
+      EsploraTFT.drawChar(x + column * 6, y + line * WIN_LINE_HEIGHT,
+                          pgm_read_byte(text + i), color, color, 1);
+      column++;
+    }
+
+    text += length;
   }
 
-  mLastStateShowWindow = mShowWindow;
-  
-  if(!mShowWindow) {
-    mWindowHasRendered = false;
-    return;
-  }
-
-  if(mWindowHasRendered) {
-    return;
-  }
-  
-  // Mitte des Bildschirm schreiben
-  int sizeX = 100; int sizeY = 40;
-  int winPosX = (EsploraTFT.width() / 2) - (sizeX / 2);
-  int winPosY = (EsploraTFT.height() / 2) - (sizeY / 2);
-
-  EsploraTFT.fillRect(winPosX, winPosY, sizeX, sizeY, mapNumberToColor(0));
-  EsploraTFT.drawRect(winPosX, winPosY, sizeX, sizeY, mapNumberToColor(18));
-  EsploraTFT.drawRect(winPosX + 2, winPosY + 2, sizeX - 4, sizeY - 4, mapNumberToColor(18));
-
-  // Text schreiben
-  writeText(winPosX + 5, winPosY + 5, "Hallo!");
-  writeText(winPosX + 5, winPosY + 28, "Schliessen [2]");
-
-   mWindowHasRendered = true;
+  return line + 1;
 }
